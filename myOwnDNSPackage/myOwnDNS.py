@@ -20,7 +20,7 @@ def main():
     sock.bind((my_ip_addr,PORT))
 
     while True:
-        #UDP limited to 512 bytes according to protocol
+        #UDP limited to 512 bytes according to protocol #
         data, addr = sock.recvfrom(512)
         print(data)
 
