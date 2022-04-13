@@ -1,0 +1,11 @@
+README
+
+#QUESTIONS
+1. How does the http server behave with the replica servers?
+- does it get run on each server (20MB/server); 
+- is it a good idea to preload this with top 20MB expected given Zipf (continue with LRU after that)
+- can we zip/unzip files on the server (zipfile library)
+- do we use the requests library to access the origin
+
+2. Is it possible for a machine to generate a remote ping from client->server
+
