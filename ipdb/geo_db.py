@@ -9,10 +9,12 @@ class geo_db():
             exit(1)
 
         if not exists('geo-ipv4.csv'):
+            if display == True:
+                print('CSV File cannot be found, STARTING EXTRACTION of zip')
             with zipfile.ZipFile('geo-ipv4.zip', 'r') as zip_ref:
                 zip_ref.extractall(getcwd())
             if display == True:
-                print("Extracted geo-ipv4.zip")
+                print("EXTRACTION COMPLETE")
 
         else:
             if display == True:
@@ -59,10 +61,10 @@ class geo_db():
                 break
 
             if target_addr <= IPv4Address(low_bound) and target_addr < IPv4Address(upper_bound):
-                high_pos = mid_pos + 1
+                high_pos = mid_pos - 1
                 continue
             elif target_addr >= IPv4Address(low_bound) and target_addr > IPv4Address(upper_bound):
-                low_pos = mid_pos - 1
+                low_pos = mid_pos + 1
                 continue
         if flag_found == False or target_key == None:
             raise RuntimeError('Could not find Ip address')
