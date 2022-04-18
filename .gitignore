@@ -11,6 +11,9 @@ __pycache__/
 # C extensions
 *.so
 
+#ignore this folder
+.vscode
+
 #ignore this file
 /ipdb/geo-ipv4.csv
 
