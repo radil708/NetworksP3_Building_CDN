@@ -4,6 +4,7 @@ import zipfile
 from ipaddress import IPv4Address
 class geo_db():
     def __init__(self, display=False):
+        # check that zipfile exists
         if not(exists('geo-ipv4.zip')):
             print("MISSING ZIP FILE, EXITING PROGRAM")
             exit(1)

@@ -20,7 +20,7 @@ class ipdbTest(unittest.TestCase):
         cls.assertEqual('-100.39', long)
 
     def test3(cls):
-        #choffnes website ip addr according to ping
+        #choffnes website ip addr according to ping #
         target_addr = '204.44.192.60'
         lat, long = cls.db.getLatLong(target_addr)
         cls.assertEqual('43.4462', lat)
