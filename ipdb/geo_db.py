@@ -2,6 +2,7 @@ from os.path import exists
 from os import getcwd
 import zipfile
 from ipaddress import IPv4Address
+
 class geo_db():
     def __init__(self, display=False):
         # check that zipfile exists
