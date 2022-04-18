@@ -40,6 +40,13 @@ class geo_db():
 
 
     def getLatLong(self, ipAddrTarget : str):
+        '''
+        Obtains the lat and long of the target ip address
+        by using binary search on the workspace to find target key
+        :param ipAddrTarget: the ip address as a string
+        :return: a tuple containing the latitude and longitude values (respectively)
+            as strings.
+        '''
         low_pos = 0
         high_pos = self.len_search_space
         target_addr = IPv4Address(ipAddrTarget)
