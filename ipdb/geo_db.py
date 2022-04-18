@@ -1,6 +1,7 @@
 from os.path import exists
 from os import getcwd
 import zipfile
+from ipaddress import IPv4Address
 class geo_db():
     def __init__(self, display=False):
         if not(exists('geo-ipv4.zip')):
@@ -39,6 +40,10 @@ class geo_db():
     def getLatLong(self, ipAddrTarget : str):
         low_pos = 0
         high_pos = self.len_search_space
+        target_addr = IPv4Address(ipAddrTarget)
+
+        flag_found = False
+        target_key = None
 
         while low_pos <= high_pos:
 
@@ -48,17 +53,21 @@ class geo_db():
             low_bound = current_bounds[0]
             upper_bound = current_bounds[1]
 
-            if current_var == target:
-                return True
+            if target_addr >= IPv4Address(low_bound) and target_addr <= IPv4Address(upper_bound):
+                target_key = current_bounds
+                flag_found = True
+                break
 
-            if current_var < target:
-                low_pos = mid_pos + 1
+            if target_addr <= IPv4Address(low_bound) and target_addr < IPv4Address(upper_bound):
+                high_pos = mid_pos + 1
                 continue
-            elif current_var > target:
-                high_pos = mid_pos - 1
+            elif target_addr >= IPv4Address(low_bound) and target_addr > IPv4Address(upper_bound):
+                low_pos = mid_pos - 1
                 continue
+        if flag_found == False or target_key == None:
+            raise RuntimeError('Could not find Ip address')
 
-        return False
+        return self.ipv4_dict[target_key]
 
 
 
