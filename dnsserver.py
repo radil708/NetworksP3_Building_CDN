@@ -20,12 +20,10 @@ class DNSServer:
             print("+++++++++++++++++++++++++++++++++++++++++++++++")
 
     def bind_socket(self):
-        try:
-            self.sock.bind((self.dns_ip,PORT))
-        except Exception as e:
-            print("Could not bind to socket")
-            print("EXITING PROGRAM")
-            exit(0)
+        self.sock.bind((self.dns_ip,PORT))
+        print("Could not bind to socket")
+        print("EXITING PROGRAM")
+        exit(0)
 
     def parse_client_request(self, request) -> bool:
         # 
