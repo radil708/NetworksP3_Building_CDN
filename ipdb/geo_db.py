@@ -62,9 +62,13 @@ class geo_db():
         if os.name == "posix":
             with open(file=path + "geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
                 for line in raw_csv.readlines():
-                    temp = line.split(",")
-                    self.ipv4_search_space.append((temp[0], temp[1]))
-                    self.ipv4_dict[(temp[0], temp[1])] = (temp[-3],temp[-2])
+                    try:
+                        temp = line.split(",")
+                        self.ipv4_search_space.append((temp[0], temp[1]))
+                        self.ipv4_dict[(temp[0], temp[1])] = (temp[-3],temp[-2])
+                    except IndexError:
+                        print(temp)
+                        exit(0)
 
             self.len_search_space = len(self.ipv4_search_space)
 
