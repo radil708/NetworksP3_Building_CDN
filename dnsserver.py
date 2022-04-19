@@ -8,41 +8,22 @@ PORT = 53 #DNS commonly uses port 53
 class DNSServer:
     def __init__(self, display=False) -> None:
 
-        isConnected = False
-
-        if display == True:
-            print("INITIALIZING DNS SERVER")
-
         #AF_INET means IPV4, DGRAM means UDP, which does not care about reliablity
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         self.dns_ip = self.get_ip_src()
 
         try:
-            self.sock.bind((self.dns_ip, 53))
-            isConnected = True
-            print("SOCKET CONNECTED")
+            self.sock.bind((self.dns_ip, PORT))
         except:
-            print("Could not bind to socket")
             self.sock.close()
-            print("EXITING PROGRAM")
-
-        if display == True:
-            if isConnected == True:
-                print(f"Server ip: {self.dns_ip}\nServer Port: {PORT}")
-                print("+++++++++++++++++++++++++++++++++++++++++++++++")
-            else:
-                print("Socket failed to bind")
-                self.sock.close()
+            if display == True:
+                print("ERROR: Could not bind to socket\tFailed to create server")
+                print("EXITING PROGRAM")
                 exit(0)
 
-    def bind_socket(self):
-        try:
-            self.sock.bind((self.dns_ip,53))
-            print("SOCKET CONNECTED")
-        except:
-            print("Could not bind to socket")
-            self.sock.close()
-            print("EXITING PROGRAM")
+        if display == True:
+            print(f"Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++")
 
     def parse_client_request(self, request) -> bool:
         # 
@@ -67,33 +48,18 @@ class DNSServer:
         s.close()
         return ip_addr
 
-    def start_receiving(self):
-        try:
-            while True:
-                #UDP limited to 512 bytes according to protocol #
-                self.s
-        except KeyboardInterrupt:
-            self.sock.close()
-            print("EXITING PROGRAM")
-            exit(0)
-
-    def start_listening(self):
-        while True:
-            try:
-                data = self.sock.recvfrom(512)
-            except socket.error:
-                break
-            print(data)
-        print('shutting down')
 
 
 def main():
     dns_server = DNSServer(True)
     while True:
         try:
-            data = dns_server.sock.recvfrom(512)
+            # 512 is byte limit for udp
+            data, client_conn_info = dns_server.sock.recvfrom(512)
+            client_ip = client_conn_info[0]
+            client_port = client_conn_info[1]
         except socket.error:
             break
-        print(data)
+        print(data,client_ip,client_port)
     print('shutting down')
 main()
