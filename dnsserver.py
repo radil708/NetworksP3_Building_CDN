@@ -1,5 +1,5 @@
 import socket
-import dnslib # Use this to parse dns packets
+#import dnslib # Use this to parse dns packets
 
 PORT = 53 #DNS commonly uses port 53
 
