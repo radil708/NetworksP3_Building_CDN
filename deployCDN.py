@@ -7,8 +7,8 @@ DNS_NODE = 'p5-dns.5700.network'
 BUILD_SERVER = 'cs5700cdnproject.ccs.neu.edu'
 
 def parse_args(args):
-    # validate port# and name
-    pass
+    #./dnsserver -p <port> -n <name>
+    
 
 def deploy_dns(name):
     # SCP file to the build server and then SSH into dnsserver to start the dns
