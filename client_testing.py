@@ -1,6 +1,6 @@
 import socket
 
-def main():
+def main(): #
     dns_server_ip = '192.168.0.248'
     dns_server_port = 53
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
