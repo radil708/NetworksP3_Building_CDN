@@ -1,7 +1,7 @@
 import socket
 #import dnslib # Use this to parse dns packets
 
-PORT = 53 #DNS commonly uses port 53
+PORT = 40015 #DNS commonly uses port 53
 
 #TODO get ipv4 address comes from geodb object
 
