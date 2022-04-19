@@ -41,7 +41,7 @@ class geo_db():
                 if display == True:
                     print('CSV File cannot be found, STARTING EXTRACTION of zip')
                 with zipfile.ZipFile(path + 'geo-ipv4.zip', 'r') as zip_ref:
-                    zip_ref.extractall(getcwd())
+                    zip_ref.extractall(path)
                 if display == True:
                     print("EXTRACTION COMPLETE")
 
