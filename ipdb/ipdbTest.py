@@ -26,8 +26,12 @@ class ipdbTest(unittest.TestCase):
         cls.assertEqual('43.4462', lat)
         cls.assertEqual('-79.6686', long)
 
-
-
+    def test4(cls):
+        # example ip #
+        target_addr = '192.168.0.248'
+        lat, long = cls.db.getLatLong(target_addr)
+        cls.assertEqual('43.4462', lat)
+        cls.assertEqual('-79.6686', long)
 
 if __name__ == "__main__":
     unittest.main(verbosity=3)
