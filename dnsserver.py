@@ -1,7 +1,14 @@
 import socket
+from dnslib import DNSRecord
 #import dnslib # Use this to parse dns packets
 
-PORT = 40015 #DNS commonly uses port 53
+#TODO replace with actual server data
+dict_ip_http_servers = {}
+dict_ip_http_servers["example server"] = '1.0.1.225'
+
+PORT = 40015 #DNS commonly uses port 53, but we were assigned port 40015
+#TODO replic servers with p5-..network get ip and lat long
+# send back ip address of closest replica server
 
 #TODO get ipv4 address comes from geodb object
 
@@ -25,8 +32,8 @@ class DNSServer:
             print(f"Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++")
 
-    def parse_client_request(self, request) -> bool:
-        # 
+    def parse_client_request(self, request):
+        parsed_request = DNSRecord.parse(request)
         pass
 
     #TODO delete comments
@@ -48,6 +55,9 @@ class DNSServer:
         s.close()
         return ip_addr
 
+    def write(self, data):
+        with open('written_file', 'wb') as w:
+            w.write(data)
 
 
 def main():
@@ -61,5 +71,8 @@ def main():
         except socket.error:
             break
         print(data,client_ip,client_port)
+        print("writing data")
+        dns_server.write(data)
+        break
     print('shutting down')
 main()
