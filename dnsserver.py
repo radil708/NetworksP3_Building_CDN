@@ -19,7 +19,9 @@ class DNSServer:
             print(f"Server ip: {self.dsn_ip}\nServer Port: {PORT}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++")
 
-    def bind_socket(self): #
+    def bind_socket(self):
+        #delete
+        print("testign")
         self.sock.bind((self.dns_ip,PORT))
         print("Could not bind to socket")
         print("EXITING PROGRAM")
