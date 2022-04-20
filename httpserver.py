@@ -1,6 +1,7 @@
 import requests
 import zipfile
 import os
+import socket 
 
 """
 Handles the client request. Either gets the html from source or cache
@@ -9,7 +10,8 @@ and returns the html to the client.
 class HttpServer:
     def __init__(self) -> None:
         self.cache = Cache()
-
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
     def get_html(self, client_request):
         # if client_request in cache, get_html_from_cache
         # else 
@@ -19,6 +21,14 @@ class HttpServer:
         else:
             self.cache.add_request_to_cache(client_request)
             requests.get((client_request, 8080))
+    
+    def receive_client_rq(self):
+        client_request = self.sock.recv(4096)
+        print(client_request)
+        return client_request
+    
+    def send_html(self, rq):
+        return self.sock.send(requests.get(rq))
 
 """
 The LRU cache will replace the last recently used (requested) html with the
@@ -55,9 +65,9 @@ class Cache:
         zip_filepath = filepath.replace('.txt', '.zip')
         zipfile.ZipFile(zip_filepath, mode='w').write(filepath)
     
-    def write_cache_to_file(self):
-        # cache to file
-        pass
+    def write_cache_to_file(self, filename, html_text):
+        with open(filename, 'w') as f:
+            f.write(html_text)
 
     def get_html_from_cache(self, client_request):
         # unzip the file with appropriate filename and get the appropriate html 
@@ -66,3 +76,8 @@ class Cache:
     
 def main():
     httpserver = HttpServer()
+    while (True):
+        client_rq = httpserver.receive_client_rq()
+        httpserver.send_html(client_rq)
+
+    
