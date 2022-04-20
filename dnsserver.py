@@ -87,6 +87,7 @@ def main():
                 if client_ip not in CLIENTS_CONNECTED_DICT.keys():
                     lat, long = dns_server.geoLookup.getLatLong(client_ip)
                     CLIENTS_CONNECTED_DICT[client_ip] = (lat,long)
+
             except RuntimeError:
                 print(f"Could not obtain lat long for client ip {client_ip}")
                 print("Continuing to listen")
@@ -96,7 +97,9 @@ def main():
             client_packet_parsed = DNSRecord.parse(data)
 
             #TODO delete
+            print("New Client connected")
             print(f"Received Client Request:\nClient ip: {client_ip}\nClient port: {client_port}")
+            print(f"client lat = {CLIENTS_CONNECTED_DICT[client_ip][0]}\t long = {CLIENTS_CONNECTED_DICT[client_ip][1]}")
             print(client_packet_parsed)
             exit(0)
         except socket.error:
