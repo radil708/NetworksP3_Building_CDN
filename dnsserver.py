@@ -6,9 +6,11 @@ import requests
 #import dnslib # Use this to parse dns packets
 
 #TODO replace with actual server data
+# dictionary containing replica servers and ip
 dict_ip_http_servers = {}
 dict_ip_http_servers["example server"] = '1.0.1.225'
 
+# Contains all clients that connected to dns server
 CLIENTS_CONNECTED_DICT = {}
 
 PORT = 40015 #DNS commonly uses port 53, but we were assigned port 40015
@@ -81,10 +83,6 @@ class DNSServer:
         s.close()
         return ip_addr
 
-    def write(self, data):
-        with open('written_file', 'wb') as w:
-            w.write(data)
-
 
 def main():
     dns_server = DNSServer(True)
@@ -118,9 +116,6 @@ def main():
             exit(0)
         except socket.error:
             break
-        print(data,client_ip,client_port)
-        print("writing data")
-        dns_server.write(data)
         break
     print('shutting down')
 main()

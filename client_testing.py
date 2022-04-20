@@ -18,6 +18,10 @@ def main():
     dns_packet = DNSRecord.question("google.com")
     s.send(dns_packet.pack())
     print("SENT")
+    while True:
+        data = s.recv()
+        print("DATA RECEIVED")
+        print(DNSRecord.parse(data))
 
     #need to send some query first
     s.close()
