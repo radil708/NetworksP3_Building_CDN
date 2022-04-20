@@ -1,5 +1,5 @@
 import socket
-from dnslib import DNSRecord
+from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A
 from ipdb.geo_db import geo_db
 import os
 import requests
@@ -45,10 +45,22 @@ class DNSServer:
         return ip
 
 
-    def parse_client_request(self, request):
-        parsed_request = DNSRecord.parse(request)
+    def get_website_query(self, client_packet):
+        parsed_request = DNSRecord.parse(client_packet)
+        dns_q = parsed_request.get_q()
+        website_query = dns_q.qname.__str__()
+        return website_query
 
-        pass
+    def make_response(self, website):
+        response = DNSRecord(DNSHeader(qr=1, aa=1, ra=1),
+                  q = DNSQuestion(website),
+                  a = RR(website, rdata=A("1.2.3.4")))
+        return response
+
+    def parse_client_request(self, client_request):
+        target_site = self.get_website_query(client_request)
+        return self.make_response(target_site)
+
 
     #TODO delete comments
     # Returns the closest replica server, we store a list of replica server ip's
@@ -94,13 +106,15 @@ def main():
                 continue
             client_port = client_conn_info[1]
 
-            client_packet_parsed = DNSRecord.parse(data)
-
             #TODO delete
             print("New Client connected")
             print(f"Received Client Request:\nClient ip: {client_ip}\nClient port: {client_port}")
             print(f"client lat = {CLIENTS_CONNECTED_DICT[client_ip][0]}\t long = {CLIENTS_CONNECTED_DICT[client_ip][1]}")
-            print(client_packet_parsed)
+            #print(client_packet_parsed)
+            response = dns_server.parse_client_request(data)
+            print("Sending Response:", response)
+            dns_server.sock.send(response.pack())
+            #TODO REMOVE THIS
             exit(0)
         except socket.error:
             break

@@ -10,6 +10,7 @@ def main():
     y = parsed.get_q()
     print(y, type(y))
     #
+    print("STOP")
     print(y.qname.__str__(), type(y.qname.__str__()))
     #get questions
     #print(parsed.questions)
