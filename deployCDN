@@ -1,17 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import sys
 
 KEY = "~/.ssh/id_ed25519.pub"
 DNS_NODE = "p5-dns.5700.network"
 HTTP_NODES = {"p5-http-a.5700.network"}
+#"p5-http-b.5700.network", "p5-http-c.5700.network",
+#                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", 
+#                "p5-http-g.5700.network"}
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
 
 def parse_args(args_list):
-    print(args_list)
+    #print(args_list)
     port, origin_server, name, username, keyfile = None, None, None, None, None
 
     for i in range(len(args_list)):
@@ -42,7 +45,7 @@ def deploy_dns(name, username, keyfile):
         + username
         + "@"
         + DNS_NODE
-        + " 'chmod 711 /home/"
+        + " 'chmod 777 /home/"
         + username
         + "/dnsserver'"
     )
@@ -64,7 +67,7 @@ def deploy_http(username, keyfile):
             + username
             + "@"
             + node
-            + " 'chmod 711 /home/"
+            + " 'chmod 777 /home/"
             + username
             + "/httpserver'"
         )

@@ -5,6 +5,9 @@ import sys
 KEY = "~/.ssh/id_ed25519.pub"
 DNS_NODE = "p5-dns.5700.network"
 HTTP_NODES = {"p5-http-a.5700.network"}
+#"p5-http-b.5700.network", "p5-http-c.5700.network",
+#                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", 
+#                "p5-http-g.5700.network"}
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
@@ -67,6 +70,6 @@ def main():
 
     stop_dns(username, keyfile)
     stop_http(username, keyfile)
-
+    print("KILLED BOTH")
 
 main()
