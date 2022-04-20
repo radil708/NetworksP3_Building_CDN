@@ -1,5 +1,6 @@
 import requests
 import zipfile
+import os
 
 """
 Handles the client request. Either gets the html from source or cache
@@ -19,18 +20,33 @@ the last time an item was requested.
 """
 class Cache:
     def __init__(self) -> None:
-        # format of cache: {request: (timestamp_last_requested, html_data)}
+        # format of cache: {request: freq_req}
         self.in_memory_cache = {}
+        self.folder_size = 0
+        self.current_folder = os.path.abspath(os.getcwd())
     
     def add_request_to_cache(self, client_request):
         # add the client's request to the cache
         # replacing the last recently used element in the cache
         pass
 
-    def zip_file(self):
+    def calculate_folder_size(self):
+        for path, _, files in os.walk(self.current_folder):
+            for f in files:
+                fp = os.path.join(path, f)
+                self.folder_size += os.path.getsize(fp)
+
+    def write_to_file(self, html_data):
+        filename = "ex.txt"
+        with open(filename, 'w') as f:
+            f.write(html_data)
+            self.zip_file(filename)
+
+    def zip_file(self, filepath):
         # https://stackoverflow.com/questions/42214376/zip-single-file
         # zip the file to cache
-        pass
+        zip_filepath = filepath.replace('.txt', '.zip')
+        zipfile.ZipFile(zip_filepath, mode='w').write(filepath)
     
     def write_cache_to_file(self):
         # cache to file
