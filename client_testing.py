@@ -19,7 +19,7 @@ def main():
     s.send(dns_packet.pack())
     print("SENT")
     while True:
-        data = s.recv()
+        data = s.recv(4096)
         print("DATA RECEIVED")
         print(DNSRecord.parse(data))
 

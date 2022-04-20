@@ -112,8 +112,6 @@ def main():
             response = dns_server.parse_client_request(data)
             print("Sending Response:", response)
             dns_server.sock.send(response.pack())
-            #TODO REMOVE THIS
-            exit(0)
         except socket.error:
             break
         break
