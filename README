@@ -1,11 +1,27 @@
 README
 
-#QUESTIONS
-1. How does the http server behave with the replica servers?
-- does it get run on each server (20MB/server); 
-- is it a good idea to preload this with top 20MB expected given Zipf (continue with LRU after that)
-- can we zip/unzip files on the server (zipfile library)
-- do we use the requests library to access the origin
+High level approach:
 
-2. Is it possible for a machine to generate a remote ping from client->server
+1. Scripts 
+    - deploy dns and http to the nodes using scp and update permissions
+    - runCDN 
+        - runs the dnsserver with the port and dns name given
+        - runs the httpserver on each replica node
+    - stopCDN - stops dnsserver and all httpservers
 
+2. httpserver - uses a socket to listen for queries from client and return a html
+    - Queries the origin server if the query is not cached (requests.get())
+    - LFU cache will be implemented to store most frequently queried hits
+    
+3. dnsserver - sets up geo database and uses a socket to listen to incoming requests
+    - listens for DNS queries from clients
+    - Currently returns only httpserver available (node A)
+    - Will respond with closest replica server based on geolocation distance calculations
+    - Implementation to follow with more http replica nodes
+
+ISSUES:
+- Port address in use sometimes - hard to test as the socket creation fails
+
+WHO DID WHAT:
+Utkarshna - deploy/run/stop scripts, httpserver
+Ramzi - dnsserver, geo_db
