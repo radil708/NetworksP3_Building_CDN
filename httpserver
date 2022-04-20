@@ -7,18 +7,11 @@ Handles the client request. Either gets the html from source or cache
 and returns the html to the client.
 """
 class HttpServer:
-    def __init__(self) -> None:
-        self.cache = Cache()
-
     def get_html(self, client_request):
         # if client_request in cache, get_html_from_cache
         # else 
         #requests.get(client_request)
-        if client_request in self.cache.in_memory_cache:
-            return self.cache.in_memory_cache[client_request]
-        else:
-            self.cache.add_request_to_cache(client_request)
-            requests.get((client_request, 8080))
+        pass
 
 """
 The LRU cache will replace the last recently used (requested) html with the
@@ -64,5 +57,4 @@ class Cache:
         # update the timestamp_last_requested of the client_request
         pass
     
-def main():
-    httpserver = HttpServer()
+    
