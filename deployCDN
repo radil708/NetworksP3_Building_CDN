@@ -2,56 +2,81 @@
 import os
 import sys
 
-KEY = '~/.ssh/id_ed25519.pub'
-DNS_NODE = 'p5-dns.5700.network'
-HTTP_NODES = {'p5-http-a.5700.network'}
-BUILD_SERVER = 'cs5700cdnproject.ccs.neu.edu'
-ORIGIN_SERVER = 'cs5700cdnorigin.ccs.neu.edu'
-#./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+KEY = "~/.ssh/id_ed25519.pub"
+DNS_NODE = "p5-dns.5700.network"
+HTTP_NODES = {"p5-http-a.5700.network"}
+BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
+ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
+# ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
 
 def parse_args(args_list):
     print(args_list)
     port, origin_server, name, username, keyfile = None, None, None, None, None
-    
+
     for i in range(len(args_list)):
-        if args_list[i] == '-p':
-            port = args_list[i+1]
-        elif args_list[i] == '-o':
-            origin_server = args_list[i+1]
-        elif args_list[i] == '-n':
-            name = args_list[i+1]
-        elif args_list[i] == '-u':
-            username = args_list[i+1]
-        elif args_list[i] == '-i':
-            keyfile = args_list[i+1]
-    
+        if args_list[i] == "-p":
+            port = args_list[i + 1]
+        elif args_list[i] == "-o":
+            origin_server = args_list[i + 1]
+        elif args_list[i] == "-n":
+            name = args_list[i + 1]
+        elif args_list[i] == "-u":
+            username = args_list[i + 1]
+        elif args_list[i] == "-i":
+            keyfile = args_list[i + 1]
+
     return port, origin_server, name, username, keyfile
 
 
 def deploy_dns(name, username, keyfile):
     # SCP file to the build server and then SSH into dnsserver to start the dns
-    scp_command = "scp -i " + keyfile + " dnsserver " + username +"@" + DNS_NODE + ":."
+    scp_command = "scp -i " + keyfile + " dnsserver " + username + "@" + DNS_NODE + ":."
     os.system(scp_command)
 
     # LOGIN to dns server node
-    ssh_command = "ssh -i " + keyfile + " " + username +"@" + DNS_NODE + " 'chmod 711 /home/" + username + "/dnsserver'"
+    ssh_command = (
+        "ssh -i "
+        + keyfile
+        + " "
+        + username
+        + "@"
+        + DNS_NODE
+        + " 'chmod 711 /home/"
+        + username
+        + "/dnsserver'"
+    )
     os.system(ssh_command)
-    
+
 
 def deploy_http(username, keyfile):
     # Deploy httpserver to each replica server
     for node in HTTP_NODES:
-        scp_command = "scp -i " + keyfile + " httpserver " + username +"@" + node + ":~"
+        scp_command = (
+            "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
+        )
         os.system(scp_command)
-        
-        ssh_command = "ssh -i " + keyfile + " " + username +"@" + node + " 'chmod 711 /home/" + username + "/httpserver'"
+
+        ssh_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + node
+            + " 'chmod 711 /home/"
+            + username
+            + "/httpserver'"
+        )
         os.system(ssh_command)
-        
+
+
 def main():
     port, origin_server, name, username, keyfile = parse_args(sys.argv[1:])
     print(port, origin_server, name, username, keyfile)
-    
+
     deploy_dns(name, username, keyfile)
     deploy_http(username, keyfile)
+
 
 main()
