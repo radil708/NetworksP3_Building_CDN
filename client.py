@@ -5,7 +5,8 @@ from dnslib import DNSRecord
 DNS_SERVER_TARGET_IP = '192.168.0.248'
 #DNS_SERVER_TARGET_IP  = '45.33.90.91'
 DNS_SERVER_TARGET_PORT = 40015
-
+VALID_EXAMPLE_QUERY = "http://cs5700cdnorigin.ccs.neu.edu:8080/Aaron_Hernandez"
+INVALID_EXAMPLE_QUERY = "https://david.choffnes.com/"
 class client():
     def __init__(self, display_set_up = False):
         # set up udp socket
@@ -47,7 +48,7 @@ class client():
 
 def main():
     x = client(True)
-    x.send_dns_query("http://cs5700cdnorigin.ccs.neu.edu:8080/Aaron_Hernandez",True)
+    x.send_dns_query(VALID_EXAMPLE_QUERY,True)
     x.close_client(True)
 main()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import socket
-from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A
+from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
 from typing import Tuple
 
 from geo_db import geo_db
@@ -33,10 +33,11 @@ and get the avg RTT of each one???
 
 
 class DNSServer:
-    def __init__(self, dns_port: int = PORT,
+    def __init__(self, dns_port: int, customer_name: str,
                  display: bool = False, display_geo_load: bool = False) -> None:
 
         self.replica_ips = {}
+        self.customer_name = customer_name
 
         for each in REPLICA_SERVER_DOMAINS:
             self.replica_ips[each] = socket.gethostbyname(each)
@@ -109,7 +110,8 @@ class DNSServer:
             exit(0)
 
         if display == True:
-            print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}")
+            print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
+                  f"Resolver set up for domain: {self.customer_name}")
             print("+++++++++++++++++++++++++++++++++++++++++++++++\n")
 
     def close_server(self, display_close_msg: bool = False):
@@ -255,8 +257,18 @@ class DNSServer:
                 if display_request == True:
                     print("DNS server listening for clients\n")
 
-                # 512 is byte limit for udp
-                data, client_conn_info = self.sock.recvfrom(512)
+
+                try:
+                    # 512 is byte limit for udp
+                    data, client_conn_info = self.sock.recvfrom(512)
+
+                except KeyboardInterrupt:
+                    if display_request == True:
+                        print("\nKeyboard Interrupt Occured")
+                        self.close_server(True)
+                    else:
+                        print("\nKeyboard Interrupt Occured")
+                        self.close_server()
 
                 # ip is first element, port is second
                 client_ip = client_conn_info[0]
@@ -269,6 +281,20 @@ class DNSServer:
                     print(f"Client port: {client_port}\n")
                     print("Client DNS query:")
                     print(query, end="\n\n")
+
+                #start building reply
+                dns_response = query.reply()
+
+                #allow dig packets to come through
+                if self.customer_name not in query.get_q().qname.__str__() and \
+                        query.get_q().qname.__str__() != ".":
+                    if display_request == True:
+                        print(f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
+                              f"Sending NXDOMAIN response to client")
+                        print("+++++++++++++++++++++++++++++++++++++++++++++\n")
+                    dns_response.header.rcode = RCODE.NXDOMAIN
+                    self.sock.sendto(dns_response.pack(), (client_ip, client_port))
+                    continue
 
                 # ---------------------------------------------------------------
                 # get closest replica
@@ -309,12 +335,3 @@ class DNSServer:
             else:
                 print("\nKeyboard Interrupt Occured")
                 self.close_server()
-
-
-def main():
-    dns_instance = DNSServer(display=True, display_geo_load=True)
-    dns_instance.listen_for_clients(True)
-    dns_instance.close_server()
-
-
-main()
