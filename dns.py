@@ -40,10 +40,12 @@ class DNSServer:
 
         self.replica_ips = {}
         self.customer_name = customer_name
+        self.lst_valid_replica_domains = []
 
         for each in REPLICA_SERVER_DOMAINS:
             try:
                 self.replica_ips[each] = socket.gethostbyname(each)
+                self.lst_valid_replica_domains.append(each)
             except socket.gaierror:
                 if display == True:
                     print(f"Replica server: {each} UNAVAILABLE")
@@ -236,6 +238,8 @@ class DNSServer:
         :param display_update: (bool) if true will print statements to the console
         :return:
         '''
+        #TODO update
+        self.lst_valid_replica_domains = []
 
         for each in REPLICA_SERVER_DOMAINS:
             self.replica_ips[each] = socket.gethostbyname(each)
@@ -314,6 +318,7 @@ class DNSServer:
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
+                        #tuple (distance, replica domain)
                         closest_replica = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
                                                                    display=display_request)
 
@@ -323,11 +328,12 @@ class DNSServer:
                             print("Check if client ip is valid")
                             print("Ip's that start with 192.168 are invalid as that is local ip")
                             print("Selecting random ip from among replica servers ip\n")
-                        random_replica_domain = REPLICA_SERVER_DOMAINS[random.randint(0, len(REPLICA_SERVER_DOMAINS) - 1)]
-                        closest_replica = random_replica_domain
+
+                        random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
+                        closest_replica = (0, random_replica_domain)
 
                     if display_request == True:
-                        print(f"Selected closest replica to client is {closest_replica}\n")
+                        print(f"Selected closest replica to client is {closest_replica[1]}\n")
 
                     CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica
 
@@ -337,7 +343,7 @@ class DNSServer:
 
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
-                        print(f"Replica server closest to returning client is {closest_replica}\n")
+                        print(f"Replica server closest to returning client is {closest_replica[1]}\n")
 
                 # ---------------------------------------------------------------------
                 # parse client request and send response
@@ -345,7 +351,7 @@ class DNSServer:
                 print("query:", query.get_q().qname.__str__())
                 #60 is TTL
                 answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
-                    closest_replica]
+                    closest_replica[1]]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
 
                 self.sock.sendto(dns_response.pack(), (client_ip, client_port))
