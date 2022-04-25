@@ -2,7 +2,7 @@
 import os
 import sys
 
-keyfile = "~/.ssh/id_rsa"
+keyfile = "~/.ssh/id_rsa.pub"
 username = "radil" #should this be radil?
 DNS_NODE = "p5-dns.5700.network"
 port = '40015'

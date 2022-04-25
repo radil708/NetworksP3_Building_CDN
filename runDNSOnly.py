@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
-keyfile = "~/.ssh/id_rsa"
+keyfile = "~/.ssh/id_rsa.pub"
 username = "radil" #should this be radil?
 DNS_NODE = "p5-dns.5700.network"
 domainName = "cs5700cdn.example.com"
