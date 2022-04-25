@@ -9,6 +9,7 @@ __pycache__/
 *$py.class
 
 geo-ipv4.csv
+/geo-ipv4.csv
 
 # C extensions
 *.so
