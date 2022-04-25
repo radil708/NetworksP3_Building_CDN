@@ -10,11 +10,6 @@ from math import radians, cos, sin, asin, sqrt
 import random
 from urllib.parse import urlparse
 
-# TODO replace with actual server data
-# dictionary where key should is (lat,long) of replica server and value is ip
-dict_ip_http_servers = {}
-dict_ip_http_servers["example server"] = '1.0.1.225'
-
 # Contains all clients that connected to dns server
 CLIENTS_CONNECTED_DICT = {}
 
@@ -175,6 +170,13 @@ class DNSServer:
 
     def get_distance_between_two_points(self, client_loc: Tuple[float, float],
                                         replica_loc: Tuple[float, float]):
+        '''
+        This method determines the distance in KM between
+        the client loc and replica loc
+        :param client_loc: Tuple(lat,long) - a tuple containing the lat and long of a client machine
+        :param replica_loc: Tuple(lat,long) - a tuple containining the lat and long a replica machine
+        :return: (float) the distance between the two locations in KM
+        '''
         client_lat = client_loc[0]
         client_long = client_loc[1]
         replica_lat = replica_loc[0]
@@ -187,7 +189,16 @@ class DNSServer:
         calc_2 = 2 * asin(sqrt(calc_1))
         return calc_2 * 6371
 
-    def get_closest_replica(self,client_loc, display = False):
+    def get_closest_replica(self,client_loc: Tuple[float, float], display: bool = False) -> Tuple[float, str]:
+        '''
+        Calculates the closest replica server to the client
+        :param client_loc: Tuple(lat,long) -  a tuple containing the lat and long of a client machine
+        :param display: (bool) if statements will print to the console
+        :return: Tuple(distance between replica and client, replica ip) - a tuple where the
+                    first element is the distance between the client and the closest
+                    replica server and the second element is the ip of the closest replica
+                    server
+        '''
         lst_dist = []
 
         for key in self.replica_lat_longs.keys():
@@ -204,7 +215,14 @@ class DNSServer:
 
         return lst_dist[0]
 
-    def update_replica_ips(self, display_update=False):
+    def update_replica_ips(self, display_update: bool = False) -> None:
+        '''
+        Updates the dictionary of domains:ip and domains:location
+            > self.replica_ips - domains:ip
+            > self.replica_lat_longs - domains:location
+        :param display_update: (bool) if true will print statements to the console
+        :return:
+        '''
 
         for each in REPLICA_SERVER_DOMAINS:
             self.replica_ips[each] = socket.gethostbyname(each)
@@ -225,7 +243,13 @@ class DNSServer:
             print("++++++++++++++++++++++++++++++++++++\n")
 
 
-    def listen_for_clients(self,display_request=False):
+    def listen_for_clients(self,display_request: bool = False) -> None:
+        '''
+        Listens for requests from clients. Sends a DNS response with an
+            answer containing the closest replica server to the client ip.
+        :param display_request: (bool) if true, statements will be printed to the console
+        :return: None
+        '''
         try:
             while True:
                 if display_request == True:
