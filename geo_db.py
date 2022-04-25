@@ -14,7 +14,7 @@ class geo_db():
         if not (exists('geo-ipv4.zip')):
             print("MISSING ZIP FILE, EXITING PROGRAM")
             exit(1)
-
+#
         # check if csv file exists, if not extract to folder
         if not exists('geo-ipv4.csv'):
             if display == True:
