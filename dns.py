@@ -11,7 +11,9 @@ import random
 from urllib.parse import urlparse
 
 # Contains all clients that connected to dns server
-CLIENTS_CONNECTED_DICT = {}
+CLIENTS_CONNECTED_RECORD = {}
+
+PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 
 PORT = 40015  # our assigned port
 REPLICA_SERVER_DOMAINS = ["p5-http-a.5700.network",
@@ -40,13 +42,21 @@ class DNSServer:
         self.customer_name = customer_name
 
         for each in REPLICA_SERVER_DOMAINS:
-            self.replica_ips[each] = socket.gethostbyname(each)
+            try:
+                self.replica_ips[each] = socket.gethostbyname(each)
+            except socket.gaierror:
+                if display == True:
+                    print(f"Replica server: {each} UNAVAILABLE")
+                continue
+
+        if display == True:
+            print(PLUS_DIVIDER)
 
         if display == True:
             print("Displaying replica server ips:")
             for key, value in self.replica_ips.items():
                 print(f"DOMAIN: {key}\tIP: {value}")
-            print("++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
         self.replica_lat_longs = {}
 
@@ -65,7 +75,7 @@ class DNSServer:
             print("Displaying replica server locations:")
             for geoKey, geoVal in self.replica_lat_longs.items():
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
-            print("++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
         # build the socket
         try:
@@ -112,7 +122,7 @@ class DNSServer:
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
                   f"Resolver set up for domain: {self.customer_name}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
     def close_server(self, display_close_msg: bool = False):
         '''
@@ -214,7 +224,7 @@ class DNSServer:
             print("Displaying distances between replica servers and client:")
             for each in lst_dist:
                 print(f"Domain: {each[1]}\tDistance to client: {each[0]}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
         return lst_dist[0]
 
@@ -234,7 +244,7 @@ class DNSServer:
             "UPDATING replica server ips:"
             for key, value in self.replica_ips.items():
                 print(f"DOMAIN: {key}\tIP: {value}")
-            print("++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
         for key, value in self.replica_ips.items():
             self.replica_lat_longs[key] = self.geoLookup.getLatLong(value)
@@ -243,7 +253,7 @@ class DNSServer:
             print("UPDATING replica server locations:")
             for geoKey, geoVal in self.replica_lat_longs.items():
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
-            print("++++++++++++++++++++++++++++++++++++\n")
+            print(PLUS_DIVIDER)
 
     def listen_for_clients(self, display_request: bool = False) -> None:
         '''
@@ -291,28 +301,41 @@ class DNSServer:
                     if display_request == True:
                         print(f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
                               f"Sending NXDOMAIN response to client")
-                        print("+++++++++++++++++++++++++++++++++++++++++++++\n")
+                        print(PLUS_DIVIDER)
                     dns_response.header.rcode = RCODE.NXDOMAIN
                     self.sock.sendto(dns_response.pack(), (client_ip, client_port))
                     continue
 
                 # ---------------------------------------------------------------
                 # get closest replica
-                try:
-                    closest_replica = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
-                                                               display=display_request)
 
-                except RuntimeError:
+                # if new client find closest replica and store the pair for future
+                # requests, instead of looking for closest replica every time
+                if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
+                    try:
+                        closest_replica = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
+                                                                   display=display_request)
+
+                    except RuntimeError:
+                        if display_request == True:
+                            print(f"Could not obtain lat/long for NEW CLIENT client ip: {client_ip}")
+                            print("Check if client ip is valid")
+                            print("Ip's that start with 192.168 are invalid as that is local ip")
+                            print("Selecting random ip from among replica servers ip\n")
+                        random_replica_domain = REPLICA_SERVER_DOMAINS[random.randint(0, len(REPLICA_SERVER_DOMAINS) - 1)]
+                        closest_replica = (0, random_replica_domain)
+
                     if display_request == True:
-                        print(f"Could not obtain lat/long for client ip: {client_ip}")
-                        print("Check if client ip is valid")
-                        print("Ip's that start with 192.168 are invalid as that is local ip")
-                        print("Selecting random ip from among replica servers ip\n")
-                    random_replica_domain = REPLICA_SERVER_DOMAINS[random.randint(0, len(REPLICA_SERVER_DOMAINS) - 1)]
-                    closest_replica = (0, random_replica_domain)
+                        print(f"Selected closest replica to client is {closest_replica[1]}\n")
 
-                if display_request == True:
-                    print(f"Selected closest replica to client is {closest_replica[1]}\n")
+                    CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
+
+                else:
+                    closest_replica = CLIENTS_CONNECTED_RECORD[client_ip]
+
+                    if display_request == True:
+                        print("REQUEST IS FROM RETURNING CLIENT")
+                        print(f"Replica server closest to client is {closest_replica}")
 
                 # ---------------------------------------------------------------------
                 # parse client request and send response
@@ -326,7 +349,7 @@ class DNSServer:
 
                 if display_request == True:
                     print(f"SENT RESPONSE:\n{dns_response}")
-                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+                    print(PLUS_DIVIDER)
 
         except KeyboardInterrupt:
             if display_request == True:
