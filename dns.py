@@ -319,7 +319,7 @@ class DNSServer:
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
                         #tuple (distance, replica domain)
-                        closest_replica = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
+                        closest_replica: Tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
                                                                    display=display_request)
 
                     except RuntimeError:
@@ -330,7 +330,7 @@ class DNSServer:
                             print("Selecting random ip from among replica servers ip\n")
 
                         random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
-                        closest_replica = (0, random_replica_domain)
+                        closest_replica: Tuple[float, str] = (0, random_replica_domain)
 
                     if display_request == True:
                         print(f"Selected closest replica to client is {closest_replica[1]}\n")
@@ -339,8 +339,8 @@ class DNSServer:
 
                 else:
                     # returning client
-                    closest_replica = CLIENTS_CONNECTED_RECORD[client_ip]
-                    closest_replica = (0, closest_replica)
+                    closest_ip = CLIENTS_CONNECTED_RECORD[client_ip]
+                    closest_replica: Tuple[float, str] = (0.0, closest_ip)
 
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
