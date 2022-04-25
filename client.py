@@ -2,6 +2,8 @@ import socket
 import requests
 from dnslib import DNSRecord
 
+#TODO DELETE THIS FILE, it essentially acts like DIG but does not
+# check dns response
 DNS_SERVER_TARGET_IP = '192.168.0.248'
 #DNS_SERVER_TARGET_IP  = '45.33.90.91'
 DNS_SERVER_TARGET_PORT = 40015
