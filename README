@@ -15,13 +15,18 @@ High level approach:
     
 3. dnsserver - sets up geo database and uses a socket to listen to incoming requests
     - listens for DNS queries from clients
-    - Currently returns only httpserver available (node A)
-    - Will respond with closest replica server based on geolocation distance calculations
-    - Implementation to follow with more http replica nodes
+    - checks if dns query domain is allowed customer "name"
+    	> responds with nxdomain if query domain is not customer "name"
+    - gets all replica server ips
+    - gets all replica server locations via binary search of geo cache
+    - determines client location
+    - Determines closest replica server to client and sends dns packet with replica server ip
+    	in response
 
 ISSUES:
 - Port address in use sometimes - hard to test as the socket creation fails
 
 WHO DID WHAT:
 Utkarshna - deploy/run/stop scripts, httpserver
-Ramzi - dnsserver, geo_db
+Ramzi - built dns server, implemented geo cache strategy, tested/verified geo functions,
+		built client.py file for testing dnsserver
