@@ -32,7 +32,7 @@ def parse_args(args_list):
 
 
 def run_dns(port, username, keyfile):
-    # Run dnsserver on dns node
+    # Run dnsserver.py on dns node
     run_command = (
         "ssh -i "
         + keyfile
@@ -40,7 +40,7 @@ def run_dns(port, username, keyfile):
         + username
         + "@"
         + DNS_NODE
-        + " ./dnsserver -p "
+        + " ./dnsserver.py -p "
         + port
         + " -n "
         + username

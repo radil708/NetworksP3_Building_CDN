@@ -33,8 +33,8 @@ def parse_args(args_list):
 
 
 def deploy_dns(name, username, keyfile):
-    # SCP file to the build server and then SSH into dnsserver to start the dns
-    scp_command = "scp -i " + keyfile + " dnsserver " + username + "@" + DNS_NODE + ":."
+    # SCP file to the build server and then SSH into dnsserver.py to start the dns
+    scp_command = "scp -i " + keyfile + " dnsserver.py " + username + "@" + DNS_NODE + ":."
     os.system(scp_command)
 
     # LOGIN to dns server node
@@ -47,7 +47,7 @@ def deploy_dns(name, username, keyfile):
         + DNS_NODE
         + " 'chmod 777 /home/"
         + username
-        + "/dnsserver'"
+        + "/dnsserver.py'"
     )
     os.system(ssh_command)
 

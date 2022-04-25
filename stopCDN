@@ -42,7 +42,7 @@ def stop_dns(username, keyfile):
         + DNS_NODE
         + " 'pkill -u "
         + username
-        + " dnsserver'"
+        + " dnsserver.py'"
     )
     os.system(ssh_command)
 
