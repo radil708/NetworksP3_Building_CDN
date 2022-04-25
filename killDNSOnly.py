@@ -25,5 +25,21 @@ def main():
 
     os.system(ssh_command)
 
+    ssh_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + DNS_NODE
+            + " 'pkill -u "
+            + username
+            + " python3'"
+    )
+
+    print(f"Running second kill command:\n {ssh_command}")\
+
+    os.system(ssh_command)
+
 
 main()
