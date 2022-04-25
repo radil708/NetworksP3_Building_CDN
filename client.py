@@ -49,6 +49,8 @@ class client():
 def main():
     x = client(True)
     x.send_dns_query(VALID_EXAMPLE_QUERY,True)
+    print("++++++++++++++++++++++++++++++++++++\n")
+    x.send_dns_query(INVALID_EXAMPLE_QUERY,True)
     x.close_client(True)
 main()
 
