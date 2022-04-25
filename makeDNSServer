@@ -1,0 +1,3 @@
+build:
+	cp dnsserver.py dnsserver
+	chmod u+x dnsserver

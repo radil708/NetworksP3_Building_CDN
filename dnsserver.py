@@ -2,6 +2,8 @@
 import os
 import socket
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A
+from typing import Tuple
+
 from geo_db import geo_db
 import requests
 from math import radians, cos, sin, asin, sqrt
@@ -31,10 +33,10 @@ recieving ip address to be the ip address of every replica server
 Then just have the replica server constantly listenign for ICMP packets
 and if the ICMP packet is received by it then send the time received to DNS
 Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP packets
-and get the avg of each one???
+and get the avg RTT of each one???
 '''
 class DNSServer:
-    def __init__(self, display=False, displayGeoDbProg=False) -> None:
+    def __init__(self, display: bool = False, displayGeoDbProg: bool = False) -> None:
 
         self.replica_ips = {}
 
@@ -115,6 +117,11 @@ class DNSServer:
             print("+++++++++++++++++++++++++++++++++++++++++++++++\n")
 
     def close_server(self, display_close_msg=False):
+        '''
+        Closes the dns server properly
+        :param display_close_msg: (bool) if true, statements will be printed to the console
+        :return: None
+        '''
         try:
             self.sock.close()
             if display_close_msg == True:
@@ -128,11 +135,15 @@ class DNSServer:
             exit(0)
 
     # TODO delet func along with line 34
-    def get_public_ip(self):
+    def get_public_ip(self) -> str:
+        '''
+        Gets public ip instead of local ip address
+        :return: (string) ip as string
+        '''
         ip = requests.get('https://api.ipify.org').content.decode('utf8')
         return ip
 
-    def get_ip_src(self):
+    def get_ip_src(self) -> str:
         '''
         Opens up a socket temporarily to get current IP address
         :return: The IP address of the machine as a string
@@ -143,6 +154,7 @@ class DNSServer:
         s.close()
         return ip_addr
 
+    #TODO this method is deprecated, DELETE later
     def get_website_query(self, client_packet,display=False):
         parsed_request = DNSRecord.parse(client_packet)
         dns_q = parsed_request.get_q()
@@ -156,11 +168,13 @@ class DNSServer:
 
         return urlParseObj
 
+    #TODO this method deprecated, Delete later
     def parse_client_request(self, client_request):
         target_site = self.get_website_query(client_request)
         return self.make_response(target_site)
 
-    def get_distance_between_two_points(self, client_loc, replica_loc):
+    def get_distance_between_two_points(self, client_loc: Tuple[float, float],
+                                        replica_loc: Tuple[float, float]):
         client_lat = client_loc[0]
         client_long = client_loc[1]
         replica_lat = replica_loc[0]
