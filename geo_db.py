@@ -10,53 +10,26 @@ class geo_db():
 
         path = None
 
-        # for running on my windows computer
-        # actually will not need this now since files are all in same folder
-        if os.name == "nt":
-            #check if zip file exists
-            if not (exists('geo-ipv4.zip')):
-                print("MISSING ZIP FILE, EXITING PROGRAM")
-                exit(1)
+        # check if zip file exists
+        if not (exists('geo-ipv4.zip')):
+            print("MISSING ZIP FILE, EXITING PROGRAM")
+            exit(1)
 
-            # check if csv file exists, if not extract to folder
-            if not exists('geo-ipv4.csv'):
-                if display == True:
-                    print('CSV File cannot be found, STARTING EXTRACTION of zip')
+        # check if csv file exists, if not extract to folder
+        if not exists('geo-ipv4.csv'):
+            if display == True:
+                print('CSV File cannot be found, STARTING EXTRACTION of zip')
 
-                with zipfile.ZipFile('geo-ipv4.zip', 'r') as zip_ref:
-                    zip_ref.extractall(getcwd())
+            with zipfile.ZipFile('geo-ipv4.zip', 'r') as zip_ref:
+                zip_ref.extractall(getcwd())
 
-                if display == True:
-                    print("EXTRACTION COMPLETE")
-                    print("+++++++++++++++++++++++++++++++++++++++++\n")
-            else:
-                if display == True:
-                    print("geo db already exists, continuing program")
-                    print("+++++++++++++++++++++++++++++++++++++++++\n")
-
-        #for the linux build
-        if os.name == "posix":
-
-            # check that zipfile exists
-            if not(exists('geo-ipv4.zip')):
-                print("MISSING ZIP FILE, EXITING PROGRAM")
-                exit(1)
-
-            if not exists('geo-ipv4.csv'):
-                if display == True:
-                    print('CSV File cannot be found, STARTING EXTRACTION of zip')
-
-                with zipfile.ZipFile(path + 'geo-ipv4.zip', 'r') as zip_ref:
-                    zip_ref.extractall(path)
-
-                if display == True:
-                    print("EXTRACTION COMPLETE")
-                    print("+++++++++++++++++++++++++++++++++++++++++\n")
-
-            else:
-                if display == True:
-                    print("geo db already exists, continuing program")
-                    print("+++++++++++++++++++++++++++++++++++++++++\n")
+            if display == True:
+                print("EXTRACTION COMPLETE")
+                print("+++++++++++++++++++++++++++++++++++++++++\n")
+        else:
+            if display == True:
+                print("geo db already exists, continuing program")
+                print("+++++++++++++++++++++++++++++++++++++++++\n")
 
 
         # key will be a tuple of ipv4 addr boundaries and value will be a tuple of lat and long as strings
@@ -68,20 +41,19 @@ class geo_db():
         if display==True:
             print("Building geoCache.. Please Wait")
 
-        if os.name == "posix":
-            with open(file="geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
-                for line in raw_csv.readlines():
-                    try:
-                        temp = line.split(",")
-                        self.ipv4_search_space.append((temp[0], temp[1]))
-                        self.ipv4_dict[(temp[0], temp[1])] = (float(temp[-3]),float(temp[-2]))
-                    except IndexError:
-                        print(temp)
-                        exit(0)
-                    except KeyboardInterrupt:
-                        print("\nKeyboard Interrupt Occured")
-                        print("EXITING PROGRAM")
-                        exit(0)
+        with open(file="geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
+            for line in raw_csv.readlines():
+                try:
+                    temp = line.split(",")
+                    self.ipv4_search_space.append((temp[0], temp[1]))
+                    self.ipv4_dict[(temp[0], temp[1])] = (float(temp[-3]), float(temp[-2]))
+                except IndexError:
+                    print(temp)
+                    exit(0)
+                except KeyboardInterrupt:
+                    print("\nKeyboard Interrupt Occured")
+                    print("EXITING PROGRAM")
+                    exit(0)
 
             self.len_search_space = len(self.ipv4_search_space)
 

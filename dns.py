@@ -295,7 +295,8 @@ class DNSServer:
                 #start building reply
                 dns_response = query.reply()
 
-                #allow dig packets to come through
+                #allow dig packets to come through, but send NXdomain response if query
+                # domain does not match name
                 if self.customer_name not in query.get_q().qname.__str__() and \
                         query.get_q().qname.__str__() != ".":
                     if display_request == True:
@@ -331,6 +332,7 @@ class DNSServer:
                     CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica
 
                 else:
+                    # returning client
                     closest_replica = CLIENTS_CONNECTED_RECORD[client_ip]
 
                     if display_request == True:
@@ -341,6 +343,7 @@ class DNSServer:
                 # parse client request and send response
                 dns_response = query.reply()
                 print("query:", query.get_q().qname.__str__())
+                #60 is TTL
                 answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
                     closest_replica]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
