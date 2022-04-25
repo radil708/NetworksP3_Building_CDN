@@ -335,11 +335,12 @@ class DNSServer:
                     if display_request == True:
                         print(f"Selected closest replica to client is {closest_replica[1]}\n")
 
-                    CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica
+                    CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
 
                 else:
                     # returning client
                     closest_replica = CLIENTS_CONNECTED_RECORD[client_ip]
+                    closest_replica = (0, closest_replica)
 
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
