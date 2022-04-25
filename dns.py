@@ -323,26 +323,26 @@ class DNSServer:
                             print("Ip's that start with 192.168 are invalid as that is local ip")
                             print("Selecting random ip from among replica servers ip\n")
                         random_replica_domain = REPLICA_SERVER_DOMAINS[random.randint(0, len(REPLICA_SERVER_DOMAINS) - 1)]
-                        closest_replica = (0, random_replica_domain)
+                        closest_replica = random_replica_domain
 
                     if display_request == True:
-                        print(f"Selected closest replica to client is {closest_replica[1]}\n")
+                        print(f"Selected closest replica to client is {closest_replica}\n")
 
-                    CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
+                    CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica
 
                 else:
                     closest_replica = CLIENTS_CONNECTED_RECORD[client_ip]
 
                     if display_request == True:
-                        print("REQUEST IS FROM RETURNING CLIENT")
-                        print(f"Replica server closest to client is {closest_replica}")
+                        print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
+                        print(f"Replica server closest to returning client is {closest_replica}\n")
 
                 # ---------------------------------------------------------------------
                 # parse client request and send response
                 dns_response = query.reply()
                 print("query:", query.get_q().qname.__str__())
                 answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
-                    closest_replica[1]]
+                    closest_replica]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
 
                 self.sock.sendto(dns_response.pack(), (client_ip, client_port))
