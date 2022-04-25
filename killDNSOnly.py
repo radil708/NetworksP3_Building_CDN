@@ -5,7 +5,7 @@ import sys
 keyfile = "~/.ssh/id_rsa"
 username = "radil" #should this be radil?
 DNS_NODE = "p5-dns.5700.network"
-port = 40015
+port = '40015'
 
 
 def main():
