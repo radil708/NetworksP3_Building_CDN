@@ -1,0 +1,5 @@
+build:
+	cp killDNSOnly.py killDNSOnly
+	chmod u+x killDNSOnly
+	cp runDNSOnly.py runDNSOnly
+	chmod u+x runDNSOnly
