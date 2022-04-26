@@ -22,7 +22,7 @@ def main():
     )
 
     print(f"Running kill command:\n {ssh_command}")
-
+#
     os.system(ssh_command)
 
 
