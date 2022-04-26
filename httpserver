@@ -4,95 +4,115 @@ import requests
 import zipfile
 import os
 import socket 
+import csv
+import time
+import gzip
+import threading
+
+CACHED_FILES_LIST = "cached_files.txt"
 PORT = 8080
+PAGEVIEWS_FILENAME = "pageviews.csv"
+ORIGIN = "cs5700cdnorigin.ccs.neu.edu"
+MAX_CACHE_SIZE_BYTES = 1000000 * 15
+MAX_CACHED_FILES = 1000
+
 """
 Handles the client request. Either gets the html from source or cache
 and returns the html to the client.
+
+Runs with ./httpserver -p <port> -o <origin>
 """
 class HttpServer:
-    def __init__(self) -> None:
-        self.cache = Cache()
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.origin = 'cs5700cdnorigin.ccs.neu.edu'
-        self._ip = socket.gethostbyname('cs5700cdnorigin.ccs.neu.edu')
+    def __init__(self, port, origin) -> None:
+        self.port = port
+        self.origin = origin
+
+        self.current_folder = os.path.abspath(os.getcwd())
+        self.cached_folder = self.current_folder + '/cached_files'
         
-        print('origin ip: ', self._ip)
+        self.current_size = os.path.getsize(self.current_folder)
+        print('current folder size', self.current_size)
+        
+        with open(CACHED_FILES_LIST, 'r') as cf:
+            all_files = cf.read()
+            self.cached_files = all_files.split('\n')[:-1]
+        
+        self.create_and_connect_socket()
+
+    def create_and_connect_socket(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self._ip = socket.gethostname()
+        #print('origin ip: ', self._ip)
+
         try:
-            self.sock.connect((self.origin, PORT))
+            self.sock.connect((socket.gethostname(), self.port))
+            #self.sock.listen(10)
             print("Http Server Connected.")
         except Exception as e:
             print("HTTP could not connect: ", e)
             self.sock.close()
 
-    def get_html(self, client_request):
-        # if client_request in cache, get_html_from_cache
-        # else 
-        #requests.get(client_request)
-        if client_request in self.cache.in_memory_cache:
-            return self.cache.in_memory_cache[client_request]
+        print("Socket created. Ready to receive client requests.")
+
+    def get_html(self, client_request_page):
+        
+        page_name = client_request_page + '.zip'
+        if page_name in self.cached_files:
+            return self.get_file(page_name)
         else:
-            self.cache.add_request_to_cache(client_request)
-            requests.get((client_request, 8080))
+            #self.cache.add_request_to_cache(client_request)
+            response = requests.get((page_name, 8080))
+            if response.status_code == 200:
+            # new thread to add the page to the LRU cache
+                t = threading.Thread(target=self.add_to_cache, args=(page_name, response))
+                t.start()
+                return response.content.decode('utf-8')
+            else:
+                return response
     
+    def add_to_cache(self, page, response):
+        filename = self.cached_folder + '/' + page
+        with gzip.open(filename, 'wb') as wfile:
+            wfile.write(response)
+        
+        fsize = os.path.getsize(filename)
+        self.current_size += fsize
+
+    def get_file(self, filepath):
+        with open(self.cached_folder + "/" + filepath, 'r') as f:
+            contents = gzip.decompress(f)
+        return contents.decode('utf-8')
+
     def receive_client_rq(self):
-        client_request = self.sock.recv(4096)
-        print(client_request)
-        return client_request
-    
-    def send_html(self, rq):
-        return self.sock.send(requests.get(rq))
+        client_request = self.sock.recv(2048)
 
-"""
-The LRU cache will replace the last recently used (requested) html with the
-latest item requested by the client. Timestamps are used to keep track of
-the last time an item was requested.
-"""
-class Cache:
-    def __init__(self) -> None:
-        # format of cache: {request: freq_req}
-        self.in_memory_cache = {}
-        self.folder_size = 0
-        self.current_folder = os.path.abspath(os.getcwd())
-    
-    def add_request_to_cache(self, client_request):
-        # add the client's request to the cache
-        # replacing the last recently used element in the cache
-        pass
+        request_path = client_request.split('/')[-1]
 
-    def calculate_folder_size(self):
-        for path, _, files in os.walk(self.current_folder):
-            for f in files:
-                fp = os.path.join(path, f)
-                self.folder_size += os.path.getsize(fp)
+        print("the request from the client", client_request, "path, ", request_path)
 
-    def write_to_file(self, html_data):
-        filename = "ex.txt"
-        with open(filename, 'w') as f:
-            f.write(html_data)
-            self.zip_file(filename)
+        if request_path == "beacon":
+            return "beacon"
+        
+        return request_path
 
-    def zip_file(self, filepath):
-        # https://stackoverflow.com/questions/42214376/zip-single-file
-        # zip the file to cache
-        zip_filepath = filepath.replace('.txt', '.zip')
-        zipfile.ZipFile(zip_filepath, mode='w').write(filepath)
-    
-    def write_cache_to_file(self, filename, html_text):
-        with open(filename, 'w') as f:
-            f.write(html_text)
+    def send_html_response(self, client_rq):
+        if client_rq == "beacon":
+            response = "HTTP/1.1 204 No Content"
+        else:
+            response = self.get_html(client_rq)
 
-    def get_html_from_cache(self, client_request):
-        # unzip the file with appropriate filename and get the appropriate html 
-        # update the timestamp_last_requested of the client_request
-        pass
-    
+        self.sock.send(response)
+
 def main():
-    print('HTTP SERVER READY')
 
     httpserver = HttpServer()
-    
-    while (True):
+    print('HTTP SERVER READY')
+
+
+    while True:
         client_rq = httpserver.receive_client_rq()
-        httpserver.send_html(client_rq)
+        httpserver.send_html_response(client_rq)
+            
 main()
+    
     

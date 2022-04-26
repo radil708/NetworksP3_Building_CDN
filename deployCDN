@@ -56,7 +56,7 @@ def deploy_http(username, keyfile):
     # Deploy httpserver to each replica server
     for node in HTTP_NODES:
         scp_command = (
-            "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
+            "scp -i " + keyfile + " httpserver caching.py pageviews.csv " + username + "@" + node + ":."
         )
         os.system(scp_command)
 
@@ -72,6 +72,17 @@ def deploy_http(username, keyfile):
             + "/httpserver'"
         )
         os.system(ssh_command)
+
+        run_caching_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + node
+            + " 'python3 caching.py'"
+        )
+        os.system(run_caching_command)
 
 
 def main():

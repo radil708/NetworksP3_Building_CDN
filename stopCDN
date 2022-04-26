@@ -69,7 +69,10 @@ def main():
     print(port, origin_server, name, username, keyfile)
 
     stop_dns(username, keyfile)
+    print("KILLED dnsserver")
+
     stop_http(username, keyfile)
-    print("KILLED BOTH")
+    print("KILLED httpserver")
+
 
 main()
