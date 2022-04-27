@@ -518,4 +518,5 @@ class DNSServer:
 
     def listen_for_clients_2(self, display_req=False):
         print("listen for clients 2 entered")
-        threading.Thread(target=self.udp_listen, args=(display_req,))
+        udp_thread = threading.Thread(target=self.udp_listen, args=(display_req,))
+        udp_thread.start()
