@@ -39,47 +39,6 @@ class DNSServer:
     def __init__(self, dns_port: int, customer_name: str,
                  display: bool = False, display_geo_load: bool = False) -> None:
 
-        self.replica_ips = {}
-        self.customer_name = customer_name
-        self.lst_valid_replica_domains = []
-
-        for each in REPLICA_SERVER_DOMAINS:
-            try:
-                self.replica_ips[each] = socket.gethostbyname(each)
-                self.lst_valid_replica_domains.append(each)
-            except socket.gaierror:
-                if display == True:
-                    print(f"Replica server: {each} UNAVAILABLE")
-                continue
-
-        if display == True:
-            print(PLUS_DIVIDER)
-
-        if display == True:
-            print("Displaying replica server ips:")
-            for key, value in self.replica_ips.items():
-                print(f"DOMAIN: {key}\tIP: {value}")
-            print(PLUS_DIVIDER)
-
-        self.replica_lat_longs = {}
-
-        # set up geodb
-        try:
-            self.geoLookup = geo_db(display_geo_load)
-        except KeyboardInterrupt:
-            print("\nKeyboard Interrupt Occured")
-            print("EXITING PROGRAM")
-            exit(0)
-
-        for key, value in self.replica_ips.items():
-            self.replica_lat_longs[key] = self.geoLookup.getLatLong(value)
-
-        if display == True:
-            print("Displaying replica server locations:")
-            for geoKey, geoVal in self.replica_lat_longs.items():
-                print(f"Domain: {geoKey}\tLocation: {geoVal}")
-            print(PLUS_DIVIDER)
-
         self.dns_ip = self.get_ip_src()
         udp_address = (self.dns_ip, dns_port)
         tcp_address = (self.dns_ip,dns_port)
@@ -159,6 +118,47 @@ class DNSServer:
             print(f"TCP Socket Succesfully Created\n"
                   f"\tTCP ADDRESS\nIP: {self.dns_ip}"
                   f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
+
+        self.replica_ips = {}
+        self.customer_name = customer_name
+        self.lst_valid_replica_domains = []
+
+        for each in REPLICA_SERVER_DOMAINS:
+            try:
+                self.replica_ips[each] = socket.gethostbyname(each)
+                self.lst_valid_replica_domains.append(each)
+            except socket.gaierror:
+                if display == True:
+                    print(f"Replica server: {each} UNAVAILABLE")
+                continue
+
+        if display == True:
+            print(PLUS_DIVIDER)
+
+        if display == True:
+            print("Displaying replica server ips:")
+            for key, value in self.replica_ips.items():
+                print(f"DOMAIN: {key}\tIP: {value}")
+            print(PLUS_DIVIDER)
+
+        self.replica_lat_longs = {}
+
+        # set up geodb
+        try:
+            self.geoLookup = geo_db(display_geo_load)
+        except KeyboardInterrupt:
+            print("\nKeyboard Interrupt Occured")
+            print("EXITING PROGRAM")
+            exit(0)
+
+        for key, value in self.replica_ips.items():
+            self.replica_lat_longs[key] = self.geoLookup.getLatLong(value)
+
+        if display == True:
+            print("Displaying replica server locations:")
+            for geoKey, geoVal in self.replica_lat_longs.items():
+                print(f"Domain: {geoKey}\tLocation: {geoVal}")
+            print(PLUS_DIVIDER)
 
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
