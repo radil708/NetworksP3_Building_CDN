@@ -125,8 +125,8 @@ class DNSServer:
 
         if display == True:
             print(f"UDP Socket Succesfully Created\n"
-                  f"UDP ADDRESS\nIP: {self.dns_ip}"
-                  f"\nPORT: {dns_port}" + PLUS_DIVIDER)
+                  f"\tUDP ADDRESS\nIP: {self.dns_ip}"
+                  f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
 
         #building tcp socket
         try:
@@ -156,8 +156,8 @@ class DNSServer:
 
         if display == True:
             print(f"TCP Socket Succesfully Created\n"
-                  f"TCP ADDRESS\nIP: {self.dns_ip}"
-                  f"\nPORT: {dns_port}" + PLUS_DIVIDER)
+                  f"\tTCP ADDRESS\nIP: {self.dns_ip}"
+                  f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
 
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
