@@ -59,7 +59,7 @@ class geo_db():
 
 
         if os.name == "nt":
-            with open(file= "geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
+            with open(file="geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
                 try:
                     for line in raw_csv.readlines():
                         temp = line.split(",")

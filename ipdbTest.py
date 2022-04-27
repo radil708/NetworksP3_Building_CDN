@@ -1,5 +1,5 @@
 import unittest
-from geo_db import geo_db
+from dnsSetup.geo_db import geo_db
 class ipdbTest(unittest.TestCase):
 
     @classmethod

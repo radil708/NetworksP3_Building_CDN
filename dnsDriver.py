@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from dns import *
+from dnsSetup.dns import *
 import socket
 
 #TODO REMOVE THESE DEFAULTS LATER
