@@ -4,7 +4,7 @@ import socket
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
 from typing import Tuple
 
-from geo_db import geo_db
+from dnsSetup.geo_db import geo_db
 import requests
 from math import radians, cos, sin, asin, sqrt
 import random
