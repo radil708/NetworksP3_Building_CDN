@@ -310,7 +310,7 @@ class DNSServer:
                     print("UDP Socket listening for dns requests\n")
                 try:
                     # 512 is byte limit for udp
-                    data, client_conn_info = self.udp_sock.recv(512)
+                    data, client_conn_info = DNSServer.udp_sock.recv(512)
 
                 except KeyboardInterrupt:
                     if display_request:
