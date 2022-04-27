@@ -35,8 +35,7 @@ def main():
 
     dns_instance = DNSServer(dns_port=args.port, customer_name=args.name,
                                  display=True, display_geo_load=True)
-    udpThread = UDPListenerThread(dns_instance)
-    udpThread.start()
+    dns_instance.listen_for_clients_2()
     dns_instance.close_server()
 
 if __name__ == "__main__":

@@ -165,8 +165,6 @@ class DNSServer:
                   f"Resolver set up for domain: {self.customer_name}")
             print(PLUS_DIVIDER)
 
-        self.udp_thread = threading.Thread(target=self.udp_listen, args=(display,))
-
     def close_server(self, display_close_msg: bool = False):
         '''
         Closes the dns server properly
@@ -518,6 +516,9 @@ class DNSServer:
                 print("\nKeyboard Interrupt Occured")
                 self.close_server()
 
+    def listen_for_clients_2(self):
+        new_thread = threading.Thread(target=self.udp_listen,kwargs=(self,True))
+        new_thread.start()
 
 class UDPListenerThread(threading.Thread):
     def __init__(self, dnsServerObj):
