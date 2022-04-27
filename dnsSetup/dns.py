@@ -83,7 +83,7 @@ class DNSServer:
         udp_address = (self.dns_ip, dns_port)
         tcp_address = (self.dns_ip,dns_port)
 
-        # build the socket
+        # build the udp socket
         try:
             # AF_INET means IPV4, DGRAM means UDP, which does not care about reliability
             self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -96,7 +96,7 @@ class DNSServer:
             #     self.dns_ip = self.get_public_ip()
         except socket.error as e:
             print(e)
-            print("Socket error occured, could not build dns server")
+            print("UDP socket error occured, could not build dns server")
             print("EXITING PROGRAM")
             exit(0)
         except KeyboardInterrupt as e:
@@ -120,6 +120,21 @@ class DNSServer:
 
         except KeyboardInterrupt:
             self.udp_sock.close()
+            print("\nKeyboard Interrupt Occured")
+            print("EXITING PROGRAM")
+            exit(0)
+
+
+        #building tcp socket
+        try:
+            self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as e:
+            print(e)
+            print("TCP socket error occured, could not build dns server")
+            print("EXITING PROGRAM")
+            exit(0)
+        except KeyboardInterrupt as e:
+            print(e)
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
