@@ -302,6 +302,7 @@ class DNSServer:
 
     def udp_listen(self, display_request: bool = False) -> None:
         try:
+            print("in udp listen")
             while True:
                 if display_request:
                     print("UDP Socket listening for dns requests\n")
