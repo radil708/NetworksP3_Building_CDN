@@ -300,7 +300,7 @@ class DNSServer:
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
             print(PLUS_DIVIDER)
 
-    def udp_listen(self, display_request: bool = False) -> None:
+    def udp_listen(self, udp_sock = self.udp_sock, display_request: bool = False) -> None:
         try:
             print("in udp listen")
             while True:
