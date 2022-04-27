@@ -35,7 +35,7 @@ def main():
 
     dns_instance = DNSServer(dns_port=args.port, customer_name=args.name,
                                  display=True, display_geo_load=True)
-    dns_instance.listen_for_clients(True)
+    dns_instance.listen_for_clients_2(True)
     dns_instance.close_server()
 
 if __name__ == "__main__":
