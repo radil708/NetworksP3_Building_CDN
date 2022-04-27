@@ -514,4 +514,4 @@ class DNSServer:
                 self.close_server()
 
     def listen_for_clients_2(self, display_req = False):
-        threading.Thread(self.udp_listen, (self, display_req))
+        threading.Thread(self.udp_listen, (display_req,))
