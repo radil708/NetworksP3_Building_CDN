@@ -9,7 +9,7 @@ class geo_db():
     def __init__(self, display=False):
 
         #path to geo zip file
-        path = Path.joinpath(os.getcwd().__str__(),'dnsSetup','geo-ipv4.zip')
+        path = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.zip')
         print(path)
 
         # check if zip file exists
