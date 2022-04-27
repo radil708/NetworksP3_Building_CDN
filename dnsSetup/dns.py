@@ -5,6 +5,7 @@ import socket
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
 from typing import Tuple
 import select
+import queue
 
 from dnsSetup.geo_db import geo_db
 import requests
@@ -47,7 +48,7 @@ class DNSServer:
         udp_address = (self.dns_ip, dns_port)
         tcp_address = (self.dns_ip, dns_port)
 
-        # building tcp socket
+        # building tcp socket client, may ned to loop and build clients that connect to all valid tcp ips
         try:
             self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -176,6 +177,10 @@ class DNSServer:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
                   f"Resolver set up for domain: {self.customer_name}")
             print(PLUS_DIVIDER)
+
+        self.inputs = [self.udp_sock, self.tcp_sock]
+        self.outputs = []
+        self.message_queues = {}
 
     def close_server(self, display_close_msg: bool = False):
         '''
@@ -314,6 +319,121 @@ class DNSServer:
             for geoKey, geoVal in self.replica_lat_longs.items():
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
             print(PLUS_DIVIDER)
+
+    def read_udp(self):
+        #TODO delete
+        display_request = True
+        try:
+            # 512 is byte limit for udp
+            #data, client_conn_info = self.udp_sock.recv(1024)
+            data, client_conn_info = self.udp_sock.recvfrom(1024)
+
+        except KeyboardInterrupt:
+            if display_request:
+                print("\nKeyboard Interrupt Occured")
+                self.close_server(True)
+            else:
+                print("\nKeyboard Interrupt Occured")
+                self.close_server()
+
+        # ip is first element, port is second
+        client_ip = client_conn_info[0]
+        client_port = int(client_conn_info[1])
+        query = DNSRecord.parse(data)
+
+        if display_request == True:
+            print("RCVD CLIENT REQUEST")
+            print(f"Client ip: {client_ip}")
+            print(f"Client port: {client_port}\n")
+            print("Client DNS query:")
+            print(query, end="\n\n")
+
+        # start building reply
+        dns_response = query.reply()
+
+        # allow dig packets to come through, but send NXdomain response if query
+        # domain does not match name
+        if self.customer_name not in query.get_q().qname.__str__() and \
+                query.get_q().qname.__str__() != ".":
+            if display_request == True:
+                print(f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
+                      f"Sending NXDOMAIN response to client")
+                print(PLUS_DIVIDER)
+            dns_response.header.rcode = RCODE.NXDOMAIN
+            self.udp_sock.sendto(dns_response.pack(), (client_ip, client_port))
+        # ---------------------------------------------------------------
+        # get closest replica
+
+        # if new client find closest replica and store the pair for future
+        # requests, instead of looking for closest replica every time
+        if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
+            try:
+                # tuple (distance, replica domain)
+                closest_replica: Tuple[float, str] = self.get_closest_replica(
+                    self.geoLookup.getLatLong(client_ip),
+                    display=display_request)
+
+            except RuntimeError:
+                if display_request == True:
+                    print(f"Could not obtain lat/long for NEW CLIENT client ip: {client_ip}")
+                    print("Check if client ip is valid")
+                    print("Ip's that start with 192.168 are invalid as that is local ip")
+                    print("Selecting random ip from among replica servers ip\n")
+
+                random_replica_domain = self.lst_valid_replica_domains[
+                    random.randint(0, len(self.lst_valid_replica_domains) - 1)]
+                closest_replica: Tuple[float, str] = (0, random_replica_domain)
+
+            if display_request == True:
+                print(f"Selected closest replica to client is {closest_replica[1]}\n")
+
+            CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
+
+        else:
+            # returning client
+            closest_ip = CLIENTS_CONNECTED_RECORD[client_ip]
+            closest_replica: Tuple[float, str] = (0.0, closest_ip)
+
+            if display_request == True:
+                print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
+                print(f"Replica server closest to returning client is {closest_replica[1]}\n")
+
+        # ---------------------------------------------------------------------
+        # parse client request and send response
+        dns_response = query.reply()
+        print("query:", query.get_q().qname.__str__())
+        # 60 is TTL
+        answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
+            closest_replica[1]]
+        dns_response.add_answer(*RR.fromZone(answer_section_as_str))
+
+        self.udp_sock.sendto(dns_response.pack(), (client_ip, client_port))
+
+        if display_request == True:
+            print(f"SENT RESPONSE:\n{dns_response}")
+            print(PLUS_DIVIDER)
+
+    def listen_for_clients_3(self):
+        while self.inputs:
+            print('listening')
+            # the lists get populated  with socket objects on select call
+            readable, writable, exceptional = select.select(self.inputs, self.outputs, self.inputs)
+            for s in readable:
+                # s is a socket object
+                if s is self.tcp_sock:
+                    # for new connections
+                    connection, client_address = s.accept()
+                    connection.setblocking(0)
+                    self.inputs.append(connection)
+                    print("Received connection request from: ", client_address)
+                    # creating a message queue for each connection
+                    self.message_queues[connection] = queue.Queue()
+
+                elif s is self.udp_sock:
+                    # if data received over UDP
+                    self.read_udp()
+
+
 
     def udp_listen(self, display_request: bool = False) -> None:
         try:
