@@ -517,13 +517,13 @@ class DNSServer:
                 self.close_server()
 
     def listen_for_clients_2(self):
-        new_thread = threading.Thread(target=self.udp_listen,kwargs=(self,True))
+        new_thread = threading.Thread(target=self.udp_listen,kwargs={'se, True})
         new_thread.start()
 
 class UDPListenerThread(threading.Thread):
     def __init__(self, dnsServerObj):
+        super(UDPListenerThread, self).__init__()
         self.dnsServerInstance = dnsServerObj
-        threading.Thread.__init__(self)
 
     def run(self) -> None:
         self.dnsServerInstance.udp_listen(True)
