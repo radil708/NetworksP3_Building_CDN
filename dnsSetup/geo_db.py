@@ -9,20 +9,20 @@ class geo_db():
     def __init__(self, display=False):
 
         #path to geo zip file
-        path = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.zip')
-        print(path)
+        path_to_zip = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.zip')
 
         # check if zip file exists
-        if not (exists('geo-ipv4.zip')):
+        if not (exists(path_to_zip)):
             print("MISSING ZIP FILE, EXITING PROGRAM")
             exit(1)
 #
         # check if csv file exists, if not extract to folder
-        if not exists('geo-ipv4.csv'):
+        path_to_csv = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.csv')
+        if not exists(path_to_csv):
             if display == True:
                 print('CSV File cannot be found, STARTING EXTRACTION of zip')
 
-            with zipfile.ZipFile('geo-ipv4.zip', 'r') as zip_ref:
+            with zipfile.ZipFile(path_to_csv, 'r') as zip_ref:
                 zip_ref.extractall(getcwd())
 
             if display == True:
@@ -43,30 +43,12 @@ class geo_db():
         if display==True:
             print("Building geoCache.. Please Wait")
 
-        with open(file="geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
+        with open(file=path_to_csv, encoding="utf8", errors="surrogateescape") as raw_csv:
             for line in raw_csv.readlines():
                 try:
                     temp = line.split(",")
                     self.ipv4_search_space.append((temp[0], temp[1]))
                     self.ipv4_dict[(temp[0], temp[1])] = (float(temp[-3]), float(temp[-2]))
-                except IndexError:
-                    print(temp)
-                    exit(0)
-                except KeyboardInterrupt:
-                    print("\nKeyboard Interrupt Occured")
-                    print("EXITING PROGRAM")
-                    exit(0)
-
-            self.len_search_space = len(self.ipv4_search_space)
-
-
-        if os.name == "nt":
-            with open(file="geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
-                try:
-                    for line in raw_csv.readlines():
-                        temp = line.split(",")
-                        self.ipv4_search_space.append((temp[0], temp[1]))
-                        self.ipv4_dict[(temp[0], temp[1])] = (temp[-3], temp[-2])
                 except IndexError:
                     print(temp)
                     exit(0)
