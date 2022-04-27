@@ -4,6 +4,7 @@ import threading
 import socket
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
 from typing import Tuple
+import select
 
 from dnsSetup.geo_db import geo_db
 import requests
@@ -34,19 +35,56 @@ Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP pack
 and get the avg RTT of each one???
 '''
 
+global G_UDP_SOCK
+global G_TCP_SOCK
+
 
 class DNSServer:
     def __init__(self, dns_port: int, customer_name: str,
-                 display: bool = False, display_geo_load: bool = False) -> None:
+                 display: bool = False, display_geo_load: bool = False, skip_geocache=True) -> None:
 
         self.dns_ip = self.get_ip_src()
         udp_address = (self.dns_ip, dns_port)
         tcp_address = (self.dns_ip, dns_port)
 
+        # building tcp socket
+        try:
+            self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        except socket.error as e:
+            print(e)
+            print("TCP socket error occured, could not build dns server")
+            print("EXITING PROGRAM")
+            exit(0)
+        except KeyboardInterrupt as e:
+            print(e)
+            print("\nKeyboard Interrupt Occured")
+            print("EXITING PROGRAM")
+            exit(0)
+
+        try:
+            self.tcp_sock.bind(tcp_address)
+            self.tcp_sock.listen(10)
+        except Exception as e:
+            print(e)
+            self.udp_sock.close()
+            self.tcp_sock.close()
+            if display == True:
+                print("ERROR: Could not bind to tcp_socket to\n"
+                      f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
+                print("EXITING PROGRAM")
+            exit(0)
+
+        if display == True:
+            print(f"TCP Socket Succesfully Created\n"
+                  f"\tTCP ADDRESS\nIP: {self.dns_ip}"
+                  f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
+
         # build the udp socket
         try:
             # AF_INET means IPV4, DGRAM means UDP, which does not care about reliability
-            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            G_UDP_SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock = G_UDP_SOCK
 
             # TODO DELETE AFTER COMPLETE BUILD THIS ONLY FOR TESTING
             # code below should be applioed to clinet not dns
@@ -88,37 +126,6 @@ class DNSServer:
                   f"\tUDP ADDRESS\nIP: {self.dns_ip}"
                   f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
 
-        # building tcp socket
-        try:
-            self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error as e:
-            print(e)
-            print("TCP socket error occured, could not build dns server")
-            print("EXITING PROGRAM")
-            exit(0)
-        except KeyboardInterrupt as e:
-            print(e)
-            print("\nKeyboard Interrupt Occured")
-            print("EXITING PROGRAM")
-            exit(0)
-
-        try:
-            self.tcp_sock.bind(tcp_address)
-        except Exception as e:
-            print(e)
-            self.udp_sock.close()
-            self.tcp_sock.close()
-            if display == True:
-                print("ERROR: Could not bind to tcp_socket to\n"
-                      f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
-                print("EXITING PROGRAM")
-            exit(0)
-
-        if display == True:
-            print(f"TCP Socket Succesfully Created\n"
-                  f"\tTCP ADDRESS\nIP: {self.dns_ip}"
-                  f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
-
         self.replica_ips = {}
         self.customer_name = customer_name
         self.lst_valid_replica_domains = []
@@ -143,22 +150,27 @@ class DNSServer:
 
         self.replica_lat_longs = {}
 
-        # set up geodb
-        try:
-            self.geoLookup = geo_db(display_geo_load)
-        except KeyboardInterrupt:
-            print("\nKeyboard Interrupt Occured")
-            print("EXITING PROGRAM")
-            exit(0)
+        # set up geodb TODO REMOVE conditional for final
+        if skip_geocache == False:
+            try:
+                self.geoLookup = geo_db(display_geo_load)
+            except KeyboardInterrupt:
+                print("\nKeyboard Interrupt Occured")
+                print("EXITING PROGRAM")
+                exit(0)
 
-        for key, value in self.replica_ips.items():
-            self.replica_lat_longs[key] = self.geoLookup.getLatLong(value)
+            for key, value in self.replica_ips.items():
+                self.replica_lat_longs[key] = self.geoLookup.getLatLong(value)
 
-        if display == True:
-            print("Displaying replica server locations:")
-            for geoKey, geoVal in self.replica_lat_longs.items():
-                print(f"Domain: {geoKey}\tLocation: {geoVal}")
-            print(PLUS_DIVIDER)
+            if display == True:
+                print("Displaying replica server locations:")
+                for geoKey, geoVal in self.replica_lat_longs.items():
+                    print(f"Domain: {geoKey}\tLocation: {geoVal}")
+                print(PLUS_DIVIDER)
+        else:
+            self.geoLookup = None
+            print("SKIPPING GEOCACHE")
+
 
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
@@ -271,6 +283,9 @@ class DNSServer:
 
         return lst_dist[0]
 
+    def get_udp_socket(self):
+        return self.udp_sock
+
     def update_replica_ips(self, display_update: bool = False) -> None:
         '''
         Updates the dictionary of domains:ip and domains:location
@@ -303,12 +318,13 @@ class DNSServer:
     def udp_listen(self, display_request: bool = False) -> None:
         try:
             print("in udp listen")
+            udp_sock_in_use = self.get_udp_socket()
             while True:
                 if display_request:
                     print("UDP Socket listening for dns requests\n")
                 try:
                     # 512 is byte limit for udp
-                    data, client_conn_info = self.udp_sock.recv(512)
+                    data, client_conn_info = udp_sock_in_use.recv(512)
 
                 except KeyboardInterrupt:
                     if display_request:
@@ -317,6 +333,9 @@ class DNSServer:
                     else:
                         print("\nKeyboard Interrupt Occured")
                         self.close_server()
+                except Exception as e:
+                    print(e)
+                    self.close_server(True)
 
                 # ip is first element, port is second
                 client_ip = client_conn_info[0]
@@ -419,6 +438,7 @@ class DNSServer:
 
                 try:
                     # 512 is byte limit for udp
+                    self.tcp_sock.accept()
                     data, client_conn_info = self.udp_sock.recvfrom(512)
 
                 except KeyboardInterrupt:

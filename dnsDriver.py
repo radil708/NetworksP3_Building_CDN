@@ -17,6 +17,10 @@ def main():
                         help='exclusive arg, if called uses default port and name values')
     args = parser.parse_args()
 
+    #TODO REMOVE FOR FINA
+    args.port = DEFAULT_PORT
+    args.name = DEFAULT_NAME
+
     if args.default != None:
         args.port = DEFAULT_PORT
         args.name = DEFAULT_NAME
@@ -35,8 +39,7 @@ def main():
 
     dns_instance = DNSServer(dns_port=args.port, customer_name=args.name,
                                  display=True, display_geo_load=True)
-    udp_t = UDPListenerThread()
-    udp_t.start()
+    dns_instance.listen_for_clients()
     dns_instance.close_server()
 
 if __name__ == "__main__":
