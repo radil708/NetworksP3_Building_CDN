@@ -165,6 +165,8 @@ class DNSServer:
                   f"Resolver set up for domain: {self.customer_name}")
             print(PLUS_DIVIDER)
 
+        self.udp_thread = threading.Thread(target=self.udp_listen, args=(display,))
+
     def close_server(self, display_close_msg: bool = False):
         '''
         Closes the dns server properly
@@ -518,5 +520,4 @@ class DNSServer:
 
     def listen_for_clients_2(self, display_req=False):
         print("listen for clients 2 entered")
-        udp_thread = threading.Thread(target=self.udp_listen, args=(display_req,))
-        udp_thread.start()
+        self.udp_thread.start()
