@@ -113,7 +113,8 @@ class DNSServer:
             self.udp_sock.close()
 
             if display == True:
-                print("ERROR: Could not bind to socket\tFailed to create server")
+                print("ERROR: Could not bind to udp_socket to\n"
+                      f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
                 print("EXITING PROGRAM")
 
             exit(0)
@@ -138,6 +139,19 @@ class DNSServer:
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
+
+        try:
+            self.tcp_sock.bind(tcp_address)
+        except Exception as e:
+            print(e)
+            self.tcp_sock.close()
+            if display == True:
+                print("ERROR: Could not bind to tcp_socket to\n"
+                      f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
+                print("EXITING PROGRAM")
+
+            exit(0)
+
 
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
