@@ -8,7 +8,7 @@ from pathlib import Path
 class geo_db():
     def __init__(self, display=False):
 
-        path = Path.joinpath('dnsSetup','geo-ipv4.zip')
+        path = Path.joinpath(os.getcwd(),'dnsSetup','geo-ipv4.zip')
         print(path)
 
         # check if zip file exists
