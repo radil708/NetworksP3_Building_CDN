@@ -8,8 +8,10 @@ from pathlib import Path
 class geo_db():
     def __init__(self, display=False):
 
+        path_to_dns_setup = Path.joinpath(Path.cwd(),'dnsSetup')
+
         #path to geo zip file
-        path_to_zip = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.zip')
+        path_to_zip = Path.joinpath(path_to_dns_setup,'geo-ipv4.zip')
 
         # check if zip file exists
         if not (exists(path_to_zip)):
@@ -17,13 +19,13 @@ class geo_db():
             exit(1)
 #
         # check if csv file exists, if not extract to folder
-        path_to_csv = Path.joinpath(Path.cwd(),'dnsSetup','geo-ipv4.csv')
+        path_to_csv = Path.joinpath(path_to_dns_setup,'geo-ipv4.csv')
         if not exists(path_to_csv):
             if display == True:
                 print('CSV File cannot be found, STARTING EXTRACTION of zip')
 
-            with zipfile.ZipFile(path_to_csv, 'r') as zip_ref:
-                zip_ref.extractall(getcwd())
+            with zipfile.ZipFile(path_to_zip, 'r') as zip_ref:
+                zip_ref.extractall(path_to_dns_setup)
 
             if display == True:
                 print("EXTRACTION COMPLETE")
