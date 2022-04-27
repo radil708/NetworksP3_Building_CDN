@@ -6,7 +6,7 @@ import socket
 
 #TODO REMOVE THESE DEFAULTS LATER
 DEFAULT_PORT = 40015
-DEFAULT_NAME = "cs5700cdnorigin.ccs.neu.edu"
+DEFAULT_NAME = "cs5700cdn.example.com"
 
 def main():
 

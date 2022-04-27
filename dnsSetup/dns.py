@@ -79,13 +79,16 @@ class DNSServer:
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
             print(PLUS_DIVIDER)
 
+        self.dns_ip = self.get_ip_src()
+        udp_address = (self.dns_ip, dns_port)
+        tcp_address = (self.dns_ip,dns_port)
+
         # build the socket
         try:
             # AF_INET means IPV4, DGRAM means UDP, which does not care about reliability
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
             # TODO DELETE AFTER COMPLETE BUILD THIS ONLY FOR TESTING
-            self.dns_ip = self.get_ip_src()
             # code below should be applioed to clinet not dns
             # # check that is valid ip address
             # checkThisIp = self.dns_ip[:7]
@@ -104,10 +107,10 @@ class DNSServer:
 
         # bind the server socket to an ip and port
         try:
-            self.sock.bind((self.dns_ip, dns_port))
+            self.udp_sock.bind(udp_address)
         except Exception as e:
             print(e)
-            self.sock.close()
+            self.udp_sock.close()
 
             if display == True:
                 print("ERROR: Could not bind to socket\tFailed to create server")
@@ -116,7 +119,7 @@ class DNSServer:
             exit(0)
 
         except KeyboardInterrupt:
-            self.sock.close()
+            self.udp_sock.close()
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
@@ -133,13 +136,13 @@ class DNSServer:
         :return: None
         '''
         try:
-            self.sock.close()
+            self.udp_sock.close()
             if display_close_msg == True:
                 print("Closing dns server socket")
                 print("EXITING PROGRAM")
             exit(0)
         except KeyboardInterrupt:
-            self.sock.close()
+            self.udp_sock.close()
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
@@ -274,7 +277,7 @@ class DNSServer:
 
                 try:
                     # 512 is byte limit for udp
-                    data, client_conn_info = self.sock.recvfrom(512)
+                    data, client_conn_info = self.udp_sock.recvfrom(512)
 
                 except KeyboardInterrupt:
                     if display_request == True:
@@ -308,7 +311,7 @@ class DNSServer:
                               f"Sending NXDOMAIN response to client")
                         print(PLUS_DIVIDER)
                     dns_response.header.rcode = RCODE.NXDOMAIN
-                    self.sock.sendto(dns_response.pack(), (client_ip, client_port))
+                    self.udp_sock.sendto(dns_response.pack(), (client_ip, client_port))
                     continue
 
                 # ---------------------------------------------------------------
@@ -355,7 +358,7 @@ class DNSServer:
                     closest_replica[1]]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
 
-                self.sock.sendto(dns_response.pack(), (client_ip, client_port))
+                self.udp_sock.sendto(dns_response.pack(), (client_ip, client_port))
 
                 if display_request == True:
                     print(f"SENT RESPONSE:\n{dns_response}")
