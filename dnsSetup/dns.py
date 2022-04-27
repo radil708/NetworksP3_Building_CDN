@@ -116,15 +116,17 @@ class DNSServer:
                 print("ERROR: Could not bind to udp_socket to\n"
                       f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
                 print("EXITING PROGRAM")
-
             exit(0)
-
         except KeyboardInterrupt:
             self.udp_sock.close()
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
 
+        if display == True:
+            print(f"UDP Socket Succesfully Created\n"
+                  f"UDP ADDRESS\nIP: {self.dns_ip}"
+                  f"\nPORT: {dns_port}" + PLUS_DIVIDER)
 
         #building tcp socket
         try:
@@ -144,14 +146,18 @@ class DNSServer:
             self.tcp_sock.bind(tcp_address)
         except Exception as e:
             print(e)
+            self.udp_sock.close()
             self.tcp_sock.close()
             if display == True:
                 print("ERROR: Could not bind to tcp_socket to\n"
                       f" ip: {self.dns_ip}\nport: {dns_port}\nFailed to create server")
                 print("EXITING PROGRAM")
-
             exit(0)
 
+        if display == True:
+            print(f"TCP Socket Succesfully Created\n"
+                  f"TCP ADDRESS\nIP: {self.dns_ip}"
+                  f"\nPORT: {dns_port}" + PLUS_DIVIDER)
 
         if display == True:
             print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
@@ -166,12 +172,14 @@ class DNSServer:
         '''
         try:
             self.udp_sock.close()
+            self.tcp_sock.close()
             if display_close_msg == True:
-                print("Closing dns server socket")
+                print("Closing udp socket\nClosing tcp socket\nDNS SERVER CLOSED")
                 print("EXITING PROGRAM")
             exit(0)
         except KeyboardInterrupt:
             self.udp_sock.close()
+            self.tcp_sock.close()
             print("\nKeyboard Interrupt Occured")
             print("EXITING PROGRAM")
             exit(0)
