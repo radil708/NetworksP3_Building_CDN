@@ -41,7 +41,7 @@ class DNSServer:
 
         self.dns_ip = self.get_ip_src()
         udp_address = (self.dns_ip, dns_port)
-        tcp_address = (self.dns_ip,dns_port)
+        tcp_address = (self.dns_ip, dns_port)
 
         # build the udp socket
         try:
@@ -88,7 +88,7 @@ class DNSServer:
                   f"\tUDP ADDRESS\nIP: {self.dns_ip}"
                   f"\nPORT: {dns_port}\n" + PLUS_DIVIDER)
 
-        #building tcp socket
+        # building tcp socket
         try:
             self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error as e:
@@ -279,7 +279,7 @@ class DNSServer:
         :param display_update: (bool) if true will print statements to the console
         :return:
         '''
-        #TODO update
+        # TODO update
         self.lst_valid_replica_domains = []
 
         for each in REPLICA_SERVER_DOMAINS:
@@ -300,18 +300,17 @@ class DNSServer:
                 print(f"Domain: {geoKey}\tLocation: {geoVal}")
             print(PLUS_DIVIDER)
 
-
-    def udp_listen(self,display_request: bool = False) -> None:
+    def udp_listen(self, display_request: bool = False) -> None:
         try:
             while True:
-                if display_request == True:
+                if display_request:
                     print("UDP Socket listening for dns requests\n")
                 try:
                     # 512 is byte limit for udp
                     data, client_conn_info = self.udp_sock.recvfrom(512)
 
                 except KeyboardInterrupt:
-                    if display_request == True:
+                    if display_request:
                         print("\nKeyboard Interrupt Occured")
                         self.close_server(True)
                     else:
@@ -330,10 +329,10 @@ class DNSServer:
                     print("Client DNS query:")
                     print(query, end="\n\n")
 
-                #start building reply
+                # start building reply
                 dns_response = query.reply()
 
-                #allow dig packets to come through, but send NXdomain response if query
+                # allow dig packets to come through, but send NXdomain response if query
                 # domain does not match name
                 if self.customer_name not in query.get_q().qname.__str__() and \
                         query.get_q().qname.__str__() != ".":
@@ -352,9 +351,10 @@ class DNSServer:
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
-                        #tuple (distance, replica domain)
-                        closest_replica: Tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
-                                                                   display=display_request)
+                        # tuple (distance, replica domain)
+                        closest_replica: Tuple[float, str] = self.get_closest_replica(
+                            self.geoLookup.getLatLong(client_ip),
+                            display=display_request)
 
                     except RuntimeError:
                         if display_request == True:
@@ -363,7 +363,8 @@ class DNSServer:
                             print("Ip's that start with 192.168 are invalid as that is local ip")
                             print("Selecting random ip from among replica servers ip\n")
 
-                        random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
+                        random_replica_domain = self.lst_valid_replica_domains[
+                            random.randint(0, len(self.lst_valid_replica_domains) - 1)]
                         closest_replica: Tuple[float, str] = (0, random_replica_domain)
 
                     if display_request == True:
@@ -384,7 +385,7 @@ class DNSServer:
                 # parse client request and send response
                 dns_response = query.reply()
                 print("query:", query.get_q().qname.__str__())
-                #60 is TTL
+                # 60 is TTL
                 answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
                     closest_replica[1]]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
@@ -415,7 +416,6 @@ class DNSServer:
                 if display_request == True:
                     print("DNS server listening for clients\n")
 
-
                 try:
                     # 512 is byte limit for udp
                     data, client_conn_info = self.udp_sock.recvfrom(512)
@@ -440,10 +440,10 @@ class DNSServer:
                     print("Client DNS query:")
                     print(query, end="\n\n")
 
-                #start building reply
+                # start building reply
                 dns_response = query.reply()
 
-                #allow dig packets to come through, but send NXdomain response if query
+                # allow dig packets to come through, but send NXdomain response if query
                 # domain does not match name
                 if self.customer_name not in query.get_q().qname.__str__() and \
                         query.get_q().qname.__str__() != ".":
@@ -462,9 +462,10 @@ class DNSServer:
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
-                        #tuple (distance, replica domain)
-                        closest_replica: Tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
-                                                                   display=display_request)
+                        # tuple (distance, replica domain)
+                        closest_replica: Tuple[float, str] = self.get_closest_replica(
+                            self.geoLookup.getLatLong(client_ip),
+                            display=display_request)
 
                     except RuntimeError:
                         if display_request == True:
@@ -473,7 +474,8 @@ class DNSServer:
                             print("Ip's that start with 192.168 are invalid as that is local ip")
                             print("Selecting random ip from among replica servers ip\n")
 
-                        random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
+                        random_replica_domain = self.lst_valid_replica_domains[
+                            random.randint(0, len(self.lst_valid_replica_domains) - 1)]
                         closest_replica: Tuple[float, str] = (0, random_replica_domain)
 
                     if display_request == True:
@@ -494,7 +496,7 @@ class DNSServer:
                 # parse client request and send response
                 dns_response = query.reply()
                 print("query:", query.get_q().qname.__str__())
-                #60 is TTL
+                # 60 is TTL
                 answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
                     closest_replica[1]]
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
@@ -513,5 +515,6 @@ class DNSServer:
                 print("\nKeyboard Interrupt Occured")
                 self.close_server()
 
-    def listen_for_clients_2(self, display_req = False):
+    def listen_for_clients_2(self, display_req=False):
+        print("listen for clients 2 entered")
         threading.Thread(target=self.udp_listen, args=(display_req,))
