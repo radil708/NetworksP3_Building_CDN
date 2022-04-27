@@ -3,12 +3,13 @@ from os import getcwd,listdir
 import zipfile
 import os
 from ipaddress import IPv4Address
-
+from pathlib import Path
 
 class geo_db():
     def __init__(self, display=False):
 
-        path = None
+        path = Path.joinpath('dnsSetup','geo-ipv4.zip')
+        print(path)
 
         # check if zip file exists
         if not (exists('geo-ipv4.zip')):
