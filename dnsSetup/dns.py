@@ -310,7 +310,7 @@ class DNSServer:
                     print("UDP Socket listening for dns requests\n")
                 try:
                     # 512 is byte limit for udp
-                    data, client_conn_info = DNSServer.udp_sock.recv(512)
+                    data, client_conn_info = self.udp_sock.recv(512)
 
                 except KeyboardInterrupt:
                     if display_request:
@@ -518,6 +518,12 @@ class DNSServer:
                 print("\nKeyboard Interrupt Occured")
                 self.close_server()
 
-    def listen_for_clients_2(self, display_req=False):
-        print("listen for clients 2 entered")
-        self.udp_thread.start()
+
+class UDPListenerThread(threading.Thread):
+    def __init__(self, dnsServerObj):
+        self.dnsServerInstance = dnsServerObj
+        threading.Thread.__init__(self)
+
+    def run(self) -> None:
+        self.dnsServerInstance.udp_listen(True)
+
