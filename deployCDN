@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 import os
 import sys
+import threading
 
 KEY = "~/.ssh/id_ed25519.pub"
 DNS_NODE = "p5-dns.5700.network"
-HTTP_NODES = {"p5-http-a.5700.network"}
-#"p5-http-b.5700.network", "p5-http-c.5700.network",
-#                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", 
-#                "p5-http-g.5700.network"}
+HTTP_NODES = ["p5-http-a.5700.network" ,"p5-http-b.5700.network", "p5-http-c.5700.network",
+                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", "p5-http-g.5700.network"]
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
-
+# ./deployCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
 
 def parse_args(args_list):
     #print(args_list)
@@ -32,9 +31,9 @@ def parse_args(args_list):
     return port, origin_server, name, username, keyfile
 
 
-def deploy_dns(name, username, keyfile):
+def deploy_dns(domain_name, username, keyfile):
     # SCP file to the build server and then SSH into dnsserver.py to start the dns
-    scp_command = "scp -i " + keyfile + " dnsserver.py " + username + "@" + DNS_NODE + ":."
+    scp_command = "scp -i " + keyfile + " dnsserver " + username + "@" + DNS_NODE + ":."
     os.system(scp_command)
 
     # LOGIN to dns server node
@@ -47,16 +46,16 @@ def deploy_dns(name, username, keyfile):
         + DNS_NODE
         + " 'chmod 777 /home/"
         + username
-        + "/dnsserver.py'"
+        + "/dnsserver'"
     )
     os.system(ssh_command)
-
-
+    
 def deploy_http(username, keyfile):
     # Deploy httpserver to each replica server
     for node in HTTP_NODES:
+        print("Deploying to http server:", node)
         scp_command = (
-            "scp -i " + keyfile + " httpserver caching.py pageviews.csv " + username + "@" + node + ":."
+            "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
         os.system(scp_command)
 
@@ -72,25 +71,13 @@ def deploy_http(username, keyfile):
             + "/httpserver'"
         )
         os.system(ssh_command)
-
-        run_caching_command = (
-            "ssh -i "
-            + keyfile
-            + " "
-            + username
-            + "@"
-            + node
-            + " 'python3 caching.py'"
-        )
-        os.system(run_caching_command)
-
+        print("Completed httpserver deploy to:", node)
 
 def main():
-    port, origin_server, name, username, keyfile = parse_args(sys.argv[1:])
-    print(port, origin_server, name, username, keyfile)
+    port, origin_server, domain_name, username, keyfile = parse_args(sys.argv[1:])
+    print(port, origin_server, domain_name, username, keyfile)
 
-    deploy_dns(name, username, keyfile)
+    #deploy_dns(name, username, keyfile)
     deploy_http(username, keyfile)
-
 
 main()

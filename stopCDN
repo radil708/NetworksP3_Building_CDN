@@ -4,14 +4,13 @@ import sys
 
 KEY = "~/.ssh/id_ed25519.pub"
 DNS_NODE = "p5-dns.5700.network"
-HTTP_NODES = {"p5-http-a.5700.network"}
-#"p5-http-b.5700.network", "p5-http-c.5700.network",
-#                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", 
-#                "p5-http-g.5700.network"}
+HTTP_NODES = ["p5-http-a.5700.network", "p5-http-b.5700.network", "p5-http-c.5700.network",
+                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", "p5-http-g.5700.network"]
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
+#./stopCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
 
 def parse_args(args_list):
     print(args_list)
@@ -42,13 +41,14 @@ def stop_dns(username, keyfile):
         + DNS_NODE
         + " 'pkill -u "
         + username
-        + " dnsserver.py'"
+        + " dnsserver'"
     )
     os.system(ssh_command)
 
 
 def stop_http(username, keyfile):
     # STop httpserver to each replica server
+    # ssh -i ~/.ssh/id_ed25519.pub team_t@p5-http-a.5700.network 'pkill -u team_t python3'
     for node in HTTP_NODES:
         ssh_command = (
             "ssh -i "
@@ -59,20 +59,18 @@ def stop_http(username, keyfile):
             + node
             + " 'pkill -u"
             + username
-            + " httpserver'"
+            + " python3'"
         )
-        os.system(ssh_command)
-
+        inta = os.system(ssh_command)
+        print("KILLED httpserver in node:", node, "return val:", inta)
 
 def main():
     port, origin_server, name, username, keyfile = parse_args(sys.argv[1:])
     print(port, origin_server, name, username, keyfile)
 
-    stop_dns(username, keyfile)
-    print("KILLED dnsserver")
+    #stop_dns(username, keyfile)
+    #print("KILLED dnsserver")
 
     stop_http(username, keyfile)
-    print("KILLED httpserver")
-
 
 main()
