@@ -4,10 +4,10 @@ from dnslib import DNSRecord
 
 #TODO DELETE THIS FILE, it essentially acts like DIG but does not
 # check dns response
-DNS_SERVER_TARGET_IP = '192.168.0.248'
+DNS_SERVER_TARGET_IP = '45.33.90.91'
 #DNS_SERVER_TARGET_IP  = '45.33.90.91'
 DNS_SERVER_TARGET_PORT = 40015
-VALID_EXAMPLE_QUERY = "http://cs5700cdnorigin.ccs.neu.edu:8080/Aaron_Hernandez"
+VALID_EXAMPLE_QUERY = "cs5700cdn.example.com"
 INVALID_EXAMPLE_QUERY = "https://david.choffnes.com/"
 class client():
     def __init__(self, display_set_up = False):

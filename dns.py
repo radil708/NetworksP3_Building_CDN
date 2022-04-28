@@ -6,7 +6,7 @@ from typing import Tuple
 
 from geo_db import geo_db
 import requests
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, atan2, sqrt
 import random
 from urllib.parse import urlparse
 
@@ -183,8 +183,8 @@ class DNSServer:
         target_site = self.get_website_query(client_request)
         return self.make_response(target_site)
 
-    def get_distance_between_two_points(self, client_loc: Tuple[float, float],
-                                        replica_loc: Tuple[float, float]):
+    def get_distance_between_two_points(self, client_loc: tuple[float, float],
+                                        replica_loc: tuple[float, float]) -> float:
         '''
         This method determines the distance in KM between
         the client loc and replica loc
@@ -192,19 +192,19 @@ class DNSServer:
         :param replica_loc: Tuple(lat,long) - a tuple containining the lat and long a replica machine
         :return: (float) the distance between the two locations in KM
         '''
-        client_lat = client_loc[0]
-        client_long = client_loc[1]
-        replica_lat = replica_loc[0]
-        replica_long = replica_loc[1]
+        client_lat = radians(float(client_loc[0]))
+        client_long = radians(float(client_loc[1]))
+        replica_lat = radians(float(replica_loc[0]))
+        replica_long = radians(float(replica_loc[1]))
 
         distance_lat = replica_lat - client_lat
         distance_long = replica_long - client_long
 
         calc_1 = sin(distance_lat / 2) ** 2 + cos(client_lat) * cos(replica_lat) * sin(distance_long / 2) ** 2
-        calc_2 = 2 * asin(sqrt(calc_1))
-        return calc_2 * 6371
+        calc_2 = 2 * atan2(sqrt(calc_1), sqrt(1 - calc_1))
+        return calc_2 * 6373.0
 
-    def get_closest_replica(self, client_loc: Tuple[float, float], display: bool = False) -> Tuple[float, str]:
+    def get_closest_replica(self, client_loc: tuple[float, float], display: bool = False) -> tuple[float, str]:
         '''
         Calculates the closest replica server to the client
         :param client_loc: Tuple(lat,long) -  a tuple containing the lat and long of a client machine
@@ -319,7 +319,7 @@ class DNSServer:
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
                         #tuple (distance, replica domain)
-                        closest_replica: Tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
+                        closest_replica: tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
                                                                    display=display_request)
 
                     except RuntimeError:
@@ -330,7 +330,7 @@ class DNSServer:
                             print("Selecting random ip from among replica servers ip\n")
 
                         random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
-                        closest_replica: Tuple[float, str] = (0, random_replica_domain)
+                        closest_replica: tuple[float, str] = (0, random_replica_domain)
 
                     if display_request == True:
                         print(f"Selected closest replica to client is {closest_replica[1]}\n")
@@ -340,7 +340,7 @@ class DNSServer:
                 else:
                     # returning client
                     closest_ip = CLIENTS_CONNECTED_RECORD[client_ip]
-                    closest_replica: Tuple[float, str] = (0.0, closest_ip)
+                    closest_replica: tuple[float, str] = (0.0, closest_ip)
 
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-
 import argparse
 from dns import *
 import socket
 
 #TODO REMOVE THESE DEFAULTS LATER
 DEFAULT_PORT = 40015
-DEFAULT_NAME = "cs5700cdnorigin.ccs.neu.edu"
+DEFAULT_NAME = "cs5700cdn.example.com"
 
 def main():
 
@@ -32,7 +31,7 @@ def main():
             print("EXITING PROGRAM")
             exit(0)
 
-
+    #TODO turn off display
     dns_instance = DNSServer(dns_port=args.port, customer_name=args.name,
                                  display=True, display_geo_load=True)
     dns_instance.listen_for_clients(True)
