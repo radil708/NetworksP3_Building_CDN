@@ -27,6 +27,8 @@ Runs with ./httpserver -p <port> -o <origin>
 
 Responds to :
 time ; wget http://[your server name]:[your port name]/[path to content]
+172.104.144.157
+wget http://172.104.144.157:40015/Main_Page
 
 wget http://194.195.121.150:40015/Main_Page
 time ; wget http://50.116.41.109:40015/Main_Page
@@ -53,19 +55,20 @@ class HttpServer:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind((socket.gethostbyname(socket.gethostname()), self.port))
-            self.sock.listen(10)
             print("Http Server Connected and listening on port", self.port)
         except Exception as e:
             print("HTTP could not connect: ", e)
             self.sock.close()
             exit(0)
 
-        print("Socket created. Ready to receive client requests.")
+        #print("Socket created. Ready to receive client requests.")
 
     def receive_client_rq(self):
+        self.sock.listen(1)
+
         # Accept the socket connection from the client
         try:
-            client_socket, addr = self.sock.accept()
+            client_socket, _ = self.sock.accept()
         except Exception as e:
             print("Could not accept socket connection from client.")
 
@@ -82,7 +85,7 @@ class HttpServer:
         get_request_path = client_request.split('\r\n')[0]
         client_request_page = get_request_path.split(' ')[1]
         
-        print("\nCLIENT REQUESTED PAGE:", client_request_page)
+        #print("\nCLIENT REQUESTED PAGE:", client_request_page)
 
         if client_request_page == "/grading/beacon":
             return "/grading/beacon", client_socket
@@ -92,7 +95,7 @@ class HttpServer:
     #####NOT ZIPPED
     def get_html(self, client_request_page):
         page_path = self.cached_folder + client_request_page
-        print("Client rq page", client_request_page, "page path", page_path)
+        #print("Client rq page", client_request_page, "page path", page_path)
 
         if page_path in self.cache.cached_files:
             print("Found:", page_path, "is in the cache.")
@@ -226,18 +229,24 @@ def main():
     port = PORT
     origin = ORIGIN
 
-    """for i in range(len(sys.argv[1:])):
+    """
+    for i in range(len(sys.argv[1:])):
         if sys.argv[i] == "-p":
             port = sys.argv[i + 1]
         elif sys.argv[i] == "-o":
-            origin = sys.argv[i + 1]"""
+            origin = sys.argv[i + 1]
+    print("Listening on port", port, "origin is ", origin)
+    """
 
     httpserver = HttpServer(port, origin)
-    print('HTTP SERVER READY')
+    #print('HTTP SERVER READY')
 
     while True:
-        client_rq, client_socket = httpserver.receive_client_rq()
-        httpserver.send_html_response(client_rq, client_socket)
+        try:
+            client_rq, client_socket = httpserver.receive_client_rq()
+            httpserver.send_html_response(client_rq, client_socket)
+        except KeyboardInterrupt:
+            httpserver.sock.close()
             
 main()
     

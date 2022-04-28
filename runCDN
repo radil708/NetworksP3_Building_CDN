@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
 import sys
+import threading
+import subprocess
 
 DNS_NODE = "p5-dns.5700.network"
 HTTP_NODES = ["p5-http-a.5700.network", "p5-http-b.5700.network", "p5-http-c.5700.network",
@@ -39,40 +41,56 @@ def run_dns(port, username, keyfile, domain_name):
         + username
         + "@"
         + DNS_NODE
-        + " ./dnsserver -p "
+        + " './dnsserver -p "
         + port
         + " -n "
         + domain_name
-        + ""
+        + "'"
     )
     os.system(run_command)
 
-
-def run_http(port, username, origin, keyfile):
-    # Run httpserver on each replica server
+def thread_runs(port, username, origin, keyfile):
+    threads = []
     for node in HTTP_NODES:
-        run_command = (
-            "ssh -i "
-            + keyfile
-            + " "
-            + username
-            + "@"
-            + node
-            + " ./httpserver -p "
-            + port
-            + " -o "
-            + origin
-            + ""
-        )
-        os.system(run_command)
-        print("Running httpserver on", node)
+        t = threading.Thread(target=run_http, args=(node, port, username, origin, keyfile))
+        t.setDaemon(True)
+        threads.append(t)
+    
+    for t in threads:
+        t.start()
+        
+    for t in threads:
+        t.join()
+
+def run_http(node, port, username, origin, keyfile):
+    # ssh -i ~/.ssh/id_ed25519.pub team_t@p5-http-d.5700.network './httpserver -p 40015 -o origin'
+    # Run httpserver on each replica server
+    #for node in HTTP_NODES:
+    run_command = (
+        "ssh -i "
+        + keyfile
+        + " "
+        + username
+        + "@"
+        + node
+        + " nohup ./httpserver -p "
+        + port
+        + " -o "
+        + origin
+        + " &"
+    )
+
+    running = os.system(run_command)
+    print("Running httpserver on", node, "command returns:", running)
+    #subprocess.run(args=run_command, shell=True, check=True)
 
 
 def main():
     port, origin_server, domain_name, username, keyfile = parse_args(sys.argv[1:])
-    #print(port, origin_server, domain_name, username, keyfile)
+    print(port, origin_server, domain_name, username, keyfile)
 
     #run_dns(port, username, keyfile, domain_name)
-    run_http(port, username, origin_server, keyfile)
+    thread_runs(port, username, origin_server, keyfile)
+    #run_http(port, username, origin_server, keyfile)
 
 main()
