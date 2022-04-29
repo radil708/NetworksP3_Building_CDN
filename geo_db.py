@@ -1,20 +1,33 @@
 from os.path import exists
 from os import getcwd,listdir
-import zipfile
+import zipfile, gzip
 import os
 from ipaddress import IPv4Address
 import requests
+import shutil
+import urllib
+import tarfile
+from time import sleep
 
-ZIP_URL = "https://github.com/sapics/ip-location-db/blob/master/geolite2-city/geolite2-city-ipv4.csv.gz"
-ZIP_URL_BACKUP = "https://github.com/radil708/GeoFile/blob/master/geo_info.zip"
+ZIP_URL = "https://github.com/sapics/ip-location-db/blob/master/geolite2-city/geolite2-city-ipv4.csv.gz?raw=true"
+ZIP_URL_BACKUP = "https://github.com/radil708/GeoFile/blob/master/geo_info.csv.gz?raw=true"
 
 def download_raw_zip_file(src_url):
     r = requests.get(src_url, stream=True)
-    with open('geo-ipv4.zip', 'wb') as f:
+    with open('geo-ipv4.csv.zip', 'wb') as f:
         for chunk in r.raw.stream(1024, decode_content=False):
             if chunk:
                 f.write(chunk)
 
+def download_gzip(src_url):
+    with urllib.request.urlopen(src_url) as response:
+        with gzip.GzipFile(fileobj=response) as uncompressed:
+            file_content = uncompressed.read()
+
+def use_tar(src_url):
+    response = requests.get(src_url, stream=True)
+    file = tarfile.open(fileobj=response.raw, mode="r|gz")
+    file.extractall(path=".")
 
 class geo_db():
     def __init__(self, display=False):
@@ -28,7 +41,7 @@ class geo_db():
 
             #Download zip if it doesn't exists
             try:
-                download_raw_zip_file(ZIP_URL)
+                download_raw_zip_file(ZIP_URL_BACKUP)
             except Exception as e:
                 if display == True:
                     print(e)
@@ -55,8 +68,9 @@ class geo_db():
             if display == True:
                 print('CSV File cannot be found, STARTING EXTRACTION of zip')
 
-            with zipfile.ZipFile('geo-ipv4.zip', 'r') as zip_ref:
-                zip_ref.extractall(getcwd())
+            with gzip.GzipFile('geo-ipv4.csv.zip', 'r') as zip_ref:
+                with open('geo-ipv4.csv', 'wb') as f_out:
+                    shutil.copyfileobj(zip_ref, f_out)
 
             if display == True:
                 print("EXTRACTION COMPLETE")
