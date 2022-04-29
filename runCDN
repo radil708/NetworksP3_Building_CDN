@@ -29,12 +29,12 @@ def run_dns(port, username, keyfile, domain_name):
         + "@"
         + DNS_NODE
         + " './dnsserver -p "
-        + port
+        + str(port)
         + " -n "
         + domain_name
         + "'"
     )
-    print(f"Running dns command:\n")
+    print("Running dns command:\n")
     os.system(run_command)
 
 def thread_runs(port, username, origin, keyfile):
@@ -62,7 +62,7 @@ def run_http(node, port, username, origin, keyfile):
         + "@"
         + node
         + " nohup ./httpserver -p "
-        + port
+        + str(port)
         + " -o "
         + origin
         + " &"
@@ -100,7 +100,7 @@ def main():
         elif argUser =='s':
             args.keyfile = DEFAULT_S_KEY
         else:
-            print(f"{args.default} in invalid value, please use 'r' or 's' as args")
+            print(args.default, " in invalid value, please use 'r' or 's' as args")
             print("EXITING PROGRAM")
             exit(0)
 
@@ -118,12 +118,9 @@ def main():
             print("EXITING DEPLOY SCRIPT")
             exit(0)
 
-    print(f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
-          f"\nPort:{args.port}"
-          f"\nOrigin: {args.origin}"
-          f"\nDomain: {args.domain_name}"
-          f"\nKeyfile: {args.keyfile}"
-          f"\nUsername: {args.username}")
+    print("USER ENTERED VALUES FOR DEPLOY SCRIPT:",
+          "\nPort:", args.port, "\nOrigin:", args.origin, "\nDomain:", args.domain_name, \
+          "\nKeyfile:", args.keyfile, "\nUsername:", args.username)
     print("------------------------------\n")
 
     if args.display != None:
