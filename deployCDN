@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
-import sys
 import argparse
-import threading
 
 DEFAULT_S_KEY = "~/.ssh/id_ed25519.pub"
 DEFAULT_R_KEY = "~/.ssh/id_rsa"
@@ -79,13 +77,13 @@ def deploy_http(username, keyfile, display = False):
     for node in HTTP_NODES:
         if display == True:
             print("Deploying to http server:", node)
+        # scp -i ~/.ssh/id_ed25519.pub team_t@p5-http-a.5700.network:.
 
         scp_command = (
             "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
 
         os.system(scp_command)
-
         ssh_command = (
             "ssh -i "
             + keyfile
