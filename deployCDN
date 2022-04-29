@@ -21,42 +21,31 @@ ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 # ./deployCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n shouldBeDomainName -u team_t -i ~/.ssh/id_ed25519.pub
 
-
-def parse_args(args_list):
-    port, origin_server, domain_name, username, keyfile = None, None, None, None, None
-
-    for i in range(len(args_list)):
-        if args_list[i] == "-p":
-            port = args_list[i + 1]
-        elif args_list[i] == "-o":
-            origin_server = args_list[i + 1]
-        elif args_list[i] == "-n":
-            domain_name = args_list[i + 1]
-        elif args_list[i] == "-u":
-            username = args_list[i + 1]
-        elif args_list[i] == "-i":
-            keyfile = args_list[i + 1]
-
-    return port, origin_server, domain_name, username, keyfile
-
-def run_copy_to_dns(file_name,keyfile_path, username_in):
+def run_copy_to_dns(file_name,keyfile_path, username_in, display=False):
     copy_cmd = f"scp -i {keyfile_path} {file_name} {username_in}@{DNS_NODE}:."
-    print(copy_cmd)
-    os.system(copy_cmd)
-    print(f"Copied {file_name} to {username_in}@{DNS_NODE} ")
-    print("--------------------------------------------------\n")
 
-def deploy_dns(username, keyfile):
-    # SCP file to the dns server and then SSH into dnsserver.py to start the dns
+    if display == True:
+        print("Running Command: " + copy_cmd)
+
+    os.system(copy_cmd)
+
+    if display == True:
+        print(copy_cmd)
+        print(f"Copied {file_name} to {username_in}@{DNS_NODE} ")
+        print("--------------------------------------------------\n")
+
+def deploy_dns(username, keyfile, display=False):
     # copy files to dns server
-    print("Deploying DNS Files to DNS Server:\n")
+    if display ==True:
+        print("Deploying DNS Files to DNS Server:\n")
 
     try:
         copy_cmd = 'cp dnsDriver.py dnsserver'
         os.system(copy_cmd)
         create_exec_cmd = 'chmod u+x dnsserver'
         os.system(create_exec_cmd)
-        print("created fresh copy of ./dnsserver exec\n")
+        if display == True:
+            print("created fresh copy of ./dnsserver exec\n")
     except Exception as e:
         print(e)
         print("Unable to turn dnsDriver.py into a an executable")
@@ -67,7 +56,7 @@ def deploy_dns(username, keyfile):
         print("\n",end='')
     except Exception as e:
         print(e)
-        print("Unable to convert dnsserver to unix format, dos2unix command not recognized")
+        print("dos2unix command not recognized, Continuing Program")
 
 
     #------------------------------------------------------
@@ -82,17 +71,21 @@ def deploy_dns(username, keyfile):
               "2.) dnsDriver.py\n"
               "3.) dnsserver\n"
               "4.) geo_db.py\n")
-        print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE")
+        print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE\n")
 
-    print("DNS DEPLOYMENT SCRIPT HAS BEEN RUN\n-----------------------------------------\n")
+    if display == True:
+        print("DNS DEPLOYMENT SCRIPT HAS BEEN RUN\n-----------------------------------------\n")
     
-def deploy_http(username, keyfile):
+def deploy_http(username, keyfile, display = False):
     # Deploy httpserver to each replica server
     for node in HTTP_NODES:
-        print("Deploying to http server:", node)
+        if display == True:
+            print("Deploying to http server:", node)
+
         scp_command = (
             "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
+
         os.system(scp_command)
 
         ssh_command = (
@@ -107,7 +100,9 @@ def deploy_http(username, keyfile):
             + "/httpserver'"
         )
         os.system(ssh_command)
-        print("Completed httpserver deploy to:", node)
+
+        if display == True:
+            print("Completed httpserver deploy to:", node)
 
 def main():
     parser = argparse.ArgumentParser(description='Parser for dnsserver args')
@@ -146,7 +141,7 @@ def main():
         args.username = DEFAULT_USERNAME
         args.display = 1
         args.domain_name = DEFAULT_DOMAIN
-
+    #--------------------------------------------------------------------------------
     else:
         if (args.port == None or args.origin == None or args.domain_name == None
                 or args.keyfile == None or args.username == None):
@@ -154,7 +149,7 @@ def main():
             print("EXITING DEPLOY SCRIPT")
             exit(0)
 
-    print(f"USER ENTERED VALUES:"
+    print(f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
           f"\nPort:{args.port}"
           f"\nOrigin: {args.origin}"
           f"\nDomain: {args.domain_name}"
@@ -162,7 +157,12 @@ def main():
           f"\nUsername: {args.username}")
     print("------------------------------\n")
 
-    deploy_dns(args.username, args.keyfile)
-    deploy_http(args.username, args.username)
+    if args.display != None:
+        args.display = True
+    else:
+        args.display = False
+
+    deploy_dns(args.username, args.keyfile,display=args.display)
+    deploy_http(args.username, args.username,display=args.display)
 
 main()
