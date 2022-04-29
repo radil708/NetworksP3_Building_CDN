@@ -49,6 +49,7 @@ class HttpServer:
         
         self.cache = Cache()
         self.create_and_connect_socket()
+        self.client_ip_ping_dict = {}
 
     def create_and_connect_socket(self):
         try:
@@ -63,12 +64,29 @@ class HttpServer:
 
         #print("Socket created. Ready to receive client requests.")
 
+    def ping_client(self, dns_socket, client_ip):
+        if client_ip in self.client_ip_ping_dict:
+            avg_rtt = self.client_ip_ping_dict[client_ip]
+        else:
+            # Ping the client 3 times
+            ping_response = os.popen(f"ping -c 3 {client_ip}").read()
+
+            # Parse the ping response for avg_rtt
+            avg_rtt = int(ping_response.split('\n')[-2].split('=')[1].split('/')[1])
+            
+            # Add ping rtt to the local dict
+            self.client_ip_ping_dict[client_ip] = avg_rtt
+
+        # Communicate the ping rtt to the dns
+        response_dns = f"PING_RTT {client_ip} {avg_rtt}".encode()
+        dns_socket.sendall(response_dns)
+
     def receive_client_rq(self):
         self.sock.listen(1)
 
         # Accept the socket connection from the client
         try:
-            client_socket, _ = self.sock.accept()
+            client_socket, client_ip = self.sock.accept()
         except Exception as e:
             print("Could not accept socket connection from client.")
 
@@ -79,13 +97,17 @@ class HttpServer:
             print("HTTP server could not receive client request, exception:", e)
             self.sock.close()
         
-        #print("the request from the client", client_request)
-
-        # b'GET /Main_Page HTTP/1.1\r\nUser-Agent: Wget/1.14 (linux-gnu)\r\nAccept: */*\r\nHost: 50.116.41.109:40015\r\nConnection: Keep-Alive\r\n\r\n'
-        get_request_path = client_request.split('\r\n')[0]
-        client_request_page = get_request_path.split(' ')[1]
+        print("the request from the client", client_request)
         
-        #print("\nCLIENT REQUESTED PAGE:", client_request_page)
+        # Check if it's a dns request
+        if client_request.startswith("PING"):
+            self.ping_client(client_socket, client_ip)
+        else:
+            # b'GET /Main_Page HTTP/1.1\r\nUser-Agent: Wget/1.14 (linux-gnu)\r\nAccept: */*\r\nHost: 50.116.41.109:40015\r\nConnection: Keep-Alive\r\n\r\n'
+            get_request_path = client_request.split('\r\n')[0]
+            client_request_page = get_request_path.split(' ')[1]
+            
+            #print("\nCLIENT REQUESTED PAGE:", client_request_page)
 
         if client_request_page == "/grading/beacon":
             return "/grading/beacon", client_socket
