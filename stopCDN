@@ -7,16 +7,24 @@ DEFAULT_R_KEY = "~/.ssh/id_rsa"
 DEFAULT_USERNAME = "team_t"
 DEFAULT_PORT = 40015
 DEFAULT_DOMAIN = "cs5700cdn.example.com"
-DNS_FILE_DEPENDENCIES =['dns.py', 'dnsDriver.py', 'dnsserver', 'geo_db.py']
+DNS_FILE_DEPENDENCIES = ["dns.py", "dnsDriver.py", "dnsserver", "geo_db.py"]
 
 DNS_NODE = "p5-dns.5700.network"
-HTTP_NODES = ["p5-http-a.5700.network" ,"p5-http-b.5700.network", "p5-http-c.5700.network",
-                "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", "p5-http-g.5700.network"]
+HTTP_NODES = [
+    "p5-http-a.5700.network",
+    "p5-http-b.5700.network",
+    "p5-http-c.5700.network",
+    "p5-http-d.5700.network",
+    "p5-http-e.5700.network",
+    "p5-http-f.5700.network",
+    "p5-http-g.5700.network",
+]
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
-#./stopCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
+# ./stopCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
+
 
 def stop_dns(username, keyfile):
     ssh_command = (
@@ -51,31 +59,54 @@ def stop_http(username, keyfile):
         inta = os.system(ssh_command)
         print("KILLED httpserver in node:", node, "return val:", inta)
 
-def main():
-    parser = argparse.ArgumentParser(description='Parser for dnsserver args')
-    # Required args according to project requirements
-    parser.add_argument('-p', '--port', metavar='', type=int, help='Port that the dns server will bind to')
-    parser.add_argument('-o', '--origin', metavar='', help='origin server containing all html files')
-    parser.add_argument('-n', '--domain_name', metavar='',
-                        help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
-                             'replica IPs')
-    parser.add_argument('-i', '--keyfile', metavar='', help='path to keyfile')
-    parser.add_argument('-u', '--username', metavar='', help='username associated with key file')
 
-    #---------------------------------------------------------------------------------
+def main():
+    parser = argparse.ArgumentParser(description="Parser for dnsserver args")
+    # Required args according to project requirements
+    parser.add_argument(
+        "-p",
+        "--port",
+        metavar="",
+        type=int,
+        help="Port that the dns server will bind to",
+    )
+    parser.add_argument(
+        "-o", "--origin", metavar="", help="origin server containing all html files"
+    )
+    parser.add_argument(
+        "-n",
+        "--domain_name",
+        metavar="",
+        help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
+        "replica IPs",
+    )
+    parser.add_argument("-i", "--keyfile", metavar="", help="path to keyfile")
+    parser.add_argument(
+        "-u", "--username", metavar="", help="username associated with key file"
+    )
+
+    # ---------------------------------------------------------------------------------
     # custom args added
-    parser.add_argument('-d', '--default', metavar='',
-                        help='optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut '
-                             'statements')
-    parser.add_argument('-s', '--display', metavar='',
-                        help='optional arg, if not None displays print statements')
+    parser.add_argument(
+        "-d",
+        "--default",
+        metavar="",
+        help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
+        "statements",
+    )
+    parser.add_argument(
+        "-s",
+        "--display",
+        metavar="",
+        help="optional arg, if not None displays print statements",
+    )
     args = parser.parse_args()
 
     if args.default != None:
         argUser = args.default.lower()
-        if argUser == 'r':
+        if argUser == "r":
             args.keyfile = DEFAULT_R_KEY
-        elif argUser =='s':
+        elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
             print(f"{args.default} in invalid value, please use 'r' or 's' as args")
@@ -88,20 +119,27 @@ def main():
         args.username = DEFAULT_USERNAME
         args.display = 1
         args.domain_name = DEFAULT_DOMAIN
-    #--------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     else:
-        if (args.port == None or args.origin == None or args.domain_name == None
-                or args.keyfile == None or args.username == None):
+        if (
+            args.port == None
+            or args.origin == None
+            or args.domain_name == None
+            or args.keyfile == None
+            or args.username == None
+        ):
             print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
             print("EXITING DEPLOY SCRIPT")
             exit(0)
 
-    print(f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
-          f"\nPort:{args.port}"
-          f"\nOrigin: {args.origin}"
-          f"\nDomain: {args.domain_name}"
-          f"\nKeyfile: {args.keyfile}"
-          f"\nUsername: {args.username}")
+    print(
+        f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
+        f"\nPort:{args.port}"
+        f"\nOrigin: {args.origin}"
+        f"\nDomain: {args.domain_name}"
+        f"\nKeyfile: {args.keyfile}"
+        f"\nUsername: {args.username}"
+    )
     print("------------------------------\n")
 
     if args.display != None:
@@ -112,5 +150,6 @@ def main():
     stop_dns(args.username, args.keyfile)
     print("KILLED dnsserver")
     stop_http(args.username, args.keyfile)
+
 
 main()

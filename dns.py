@@ -16,27 +16,34 @@ CLIENTS_CONNECTED_RECORD = {}
 PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 
 PORT = 40015  # our assigned port
-REPLICA_SERVER_DOMAINS = ["p5-http-a.5700.network",
-                          "p5-http-b.5700.network",
-                          "p5-http-c.5700.network",
-                          "p5-http-d.5700.network",
-                          "p5-http-e.5700.network",
-                          "p5-http-f.5700.network",
-                          "p5-http-g.5700.network"]
+REPLICA_SERVER_DOMAINS = [
+    "p5-http-a.5700.network",
+    "p5-http-b.5700.network",
+    "p5-http-c.5700.network",
+    "p5-http-d.5700.network",
+    "p5-http-e.5700.network",
+    "p5-http-f.5700.network",
+    "p5-http-g.5700.network",
+]
 
-'''
+"""
 idea instead of geocache we could send a ping from DNS and spoof the ICMP packet's
 recieving ip address to be the ip address of every replica server
 Then just have the replica server constantly listenign for ICMP packets
 and if the ICMP packet is received by it then send the time received to DNS
 Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP packets
 and get the avg RTT of each one???
-'''
+"""
 
 
 class DNSServer:
-    def __init__(self, dns_port: int, customer_name: str,
-                 display: bool = False, display_geo_load: bool = False) -> None:
+    def __init__(
+        self,
+        dns_port: int,
+        customer_name: str,
+        display: bool = False,
+        display_geo_load: bool = False,
+    ) -> None:
 
         self.replica_ips = {}
         self.customer_name = customer_name
@@ -122,16 +129,18 @@ class DNSServer:
             exit(0)
 
         if display == True:
-            print(f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
-                  f"Resolver set up for domain: {self.customer_name}")
+            print(
+                f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
+                f"Resolver set up for domain: {self.customer_name}"
+            )
             print(PLUS_DIVIDER)
 
     def close_server(self, display_close_msg: bool = False):
-        '''
+        """
         Closes the dns server properly
         :param display_close_msg: (bool) if true, statements will be printed to the console
         :return: None
-        '''
+        """
         try:
             self.sock.close()
             if display_close_msg == True:
@@ -146,18 +155,18 @@ class DNSServer:
 
     # TODO this method is deprecated, DELETE before final submission
     def get_public_ip(self) -> str:
-        '''
+        """
         Gets public ip instead of local ip address
         :return: (string) ip as string
-        '''
-        ip = requests.get('https://api.ipify.org').content.decode('utf8')
+        """
+        ip = requests.get("https://api.ipify.org").content.decode("utf8")
         return ip
 
     def get_ip_src(self) -> str:
-        '''
+        """
         Opens up a socket temporarily to get current IP address
         :return: The IP address of the machine as a string
-        '''
+        """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip_addr = s.getsockname()[0]
@@ -183,15 +192,16 @@ class DNSServer:
         target_site = self.get_website_query(client_request)
         return self.make_response(target_site)
 
-    def get_distance_between_two_points(self, client_loc: tuple,
-                                        replica_loc: tuple) -> float:
-        '''
+    def get_distance_between_two_points(
+        self, client_loc: tuple, replica_loc: tuple
+    ) -> float:
+        """
         This method determines the distance in KM between
         the client loc and replica loc
         :param client_loc: Tuple(lat,long) - a tuple containing the lat and long of a client machine
         :param replica_loc: Tuple(lat,long) - a tuple containining the lat and long a replica machine
         :return: (float) the distance between the two locations in KM
-        '''
+        """
         client_lat = radians(float(client_loc[0]))
         client_long = radians(float(client_loc[1]))
         replica_lat = radians(float(replica_loc[0]))
@@ -200,12 +210,15 @@ class DNSServer:
         distance_lat = replica_lat - client_lat
         distance_long = replica_long - client_long
 
-        calc_1 = sin(distance_lat / 2) ** 2 + cos(client_lat) * cos(replica_lat) * sin(distance_long / 2) ** 2
+        calc_1 = (
+            sin(distance_lat / 2) ** 2
+            + cos(client_lat) * cos(replica_lat) * sin(distance_long / 2) ** 2
+        )
         calc_2 = 2 * atan2(sqrt(calc_1), sqrt(1 - calc_1))
         return calc_2 * 6373.0
 
     def get_closest_replica(self, client_loc: tuple, display: bool = False) -> tuple:
-        '''
+        """
         Calculates the closest replica server to the client
         :param client_loc: Tuple(lat,long) -  a tuple containing the lat and long of a client machine
         :param display: (bool) if statements will print to the console
@@ -213,12 +226,18 @@ class DNSServer:
                     first element is the distance between the client and the closest
                     replica server and the second element is the ip of the closest replica
                     server
-        '''
+        """
         lst_dist = []
 
         for key in self.replica_lat_longs.keys():
             lst_dist.append(
-                (self.get_distance_between_two_points(client_loc, self.replica_lat_longs[key]), key))
+                (
+                    self.get_distance_between_two_points(
+                        client_loc, self.replica_lat_longs[key]
+                    ),
+                    key,
+                )
+            )
 
         lst_dist = sorted(lst_dist)
 
@@ -231,14 +250,14 @@ class DNSServer:
         return lst_dist[0]
 
     def update_replica_ips(self, display_update: bool = False) -> None:
-        '''
+        """
         Updates the dictionary of domains:ip and domains:location
             > self.replica_ips - domains:ip
             > self.replica_lat_longs - domains:location
         :param display_update: (bool) if true will print statements to the console
         :return:
-        '''
-        #TODO update
+        """
+        # TODO update
         self.lst_valid_replica_domains = []
 
         for each in REPLICA_SERVER_DOMAINS:
@@ -260,17 +279,16 @@ class DNSServer:
             print(PLUS_DIVIDER)
 
     def listen_for_clients(self, display_request: bool = False) -> None:
-        '''
+        """
         Listens for requests from clients. Sends a DNS response with an
             answer containing the closest replica server to the client ip.
         :param display_request: (bool) if true, statements will be printed to the console
         :return: None
-        '''
+        """
         try:
             while True:
                 if display_request == True:
                     print("DNS server listening for clients\n")
-
 
                 try:
                     # 512 is byte limit for udp
@@ -296,16 +314,20 @@ class DNSServer:
                     print("Client DNS query:")
                     print(query, end="\n\n")
 
-                #start building reply
+                # start building reply
                 dns_response = query.reply()
 
-                #allow dig packets to come through, but send NXdomain response if query
+                # allow dig packets to come through, but send NXdomain response if query
                 # domain does not match name
-                if self.customer_name not in query.get_q().qname.__str__() and \
-                        query.get_q().qname.__str__() != ".":
+                if (
+                    self.customer_name not in query.get_q().qname.__str__()
+                    and query.get_q().qname.__str__() != "."
+                ):
                     if display_request == True:
-                        print(f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
-                              f"Sending NXDOMAIN response to client")
+                        print(
+                            f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
+                            f"Sending NXDOMAIN response to client"
+                        )
                         print(PLUS_DIVIDER)
                     dns_response.header.rcode = RCODE.NXDOMAIN
                     self.sock.sendto(dns_response.pack(), (client_ip, client_port))
@@ -318,22 +340,32 @@ class DNSServer:
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
                     try:
-                        #tuple (distance, replica domain)
-                        closest_replica: tuple[float, str] = self.get_closest_replica(self.geoLookup.getLatLong(client_ip),
-                                                                   display=display_request)
+                        # tuple (distance, replica domain)
+                        closest_replica: tuple[float, str] = self.get_closest_replica(
+                            self.geoLookup.getLatLong(client_ip),
+                            display=display_request,
+                        )
 
                     except RuntimeError:
                         if display_request == True:
-                            print(f"Could not obtain lat/long for NEW CLIENT client ip: {client_ip}")
+                            print(
+                                f"Could not obtain lat/long for NEW CLIENT client ip: {client_ip}"
+                            )
                             print("Check if client ip is valid")
-                            print("Ip's that start with 192.168 are invalid as that is local ip")
+                            print(
+                                "Ip's that start with 192.168 are invalid as that is local ip"
+                            )
                             print("Selecting random ip from among replica servers ip\n")
 
-                        random_replica_domain = self.lst_valid_replica_domains[random.randint(0, len(self.lst_valid_replica_domains) - 1)]
+                        random_replica_domain = self.lst_valid_replica_domains[
+                            random.randint(0, len(self.lst_valid_replica_domains) - 1)
+                        ]
                         closest_replica: tuple[float, str] = (0, random_replica_domain)
 
                     if display_request == True:
-                        print(f"Selected closest replica to client is {closest_replica[1]}\n")
+                        print(
+                            f"Selected closest replica to client is {closest_replica[1]}\n"
+                        )
 
                     CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
 
@@ -344,15 +376,21 @@ class DNSServer:
 
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
-                        print(f"Replica server closest to returning client is {closest_replica[1]}\n")
+                        print(
+                            f"Replica server closest to returning client is {closest_replica[1]}\n"
+                        )
 
                 # ---------------------------------------------------------------------
                 # parse client request and send response
                 dns_response = query.reply()
                 print("query:", query.get_q().qname.__str__())
-                #60 is TTL
-                answer_section_as_str = query.get_q().qname.__str__() + " 60 " + "A " + self.replica_ips[
-                    closest_replica[1]]
+                # 60 is TTL
+                answer_section_as_str = (
+                    query.get_q().qname.__str__()
+                    + " 60 "
+                    + "A "
+                    + self.replica_ips[closest_replica[1]]
+                )
                 dns_response.add_answer(*RR.fromZone(answer_section_as_str))
 
                 self.sock.sendto(dns_response.pack(), (client_ip, client_port))
