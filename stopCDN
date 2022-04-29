@@ -109,7 +109,7 @@ def main():
         elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
-            print(f"{args.default} in invalid value, please use 'r' or 's' as args")
+            print(args.default," in invalid value, please use 'r' or 's' as args")
             print("EXITING PROGRAM")
             exit(0)
 
@@ -133,15 +133,20 @@ def main():
             exit(0)
 
     print(
-        f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
-        f"\nPort:{args.port}"
-        f"\nOrigin: {args.origin}"
-        f"\nDomain: {args.domain_name}"
-        f"\nKeyfile: {args.keyfile}"
-        f"\nUsername: {args.username}"
+        "USER ENTERED VALUES FOR DEPLOY SCRIPT:",
+        "\nPort:",
+        args.port,
+        "\nOrigin:",
+        args.origin,
+        "\nDomain:",
+        args.domain_name,
+        "\nKeyfile:",
+        args.keyfile,
+        "\nUsername:",
+        args.username,
     )
     print("------------------------------\n")
-
+    
     if args.display != None:
         args.display = True
     else:
