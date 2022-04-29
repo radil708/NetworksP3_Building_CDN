@@ -79,10 +79,19 @@ def deploy_dns(username, keyfile, display=False):
         )
         print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE\n")
 
-    if display == True:
-        print(
-            "DNS DEPLOYMENT SCRIPT HAS BEEN RUN\n-----------------------------------------\n"
-        )
+def run_geocaching(keyfile, username, dnsserver):
+    run_command = (
+        "ssh -i "
+        + keyfile
+        + " "
+        + username
+        + "@"
+        + dnsserver
+        + " 'python3 geo_db.py'"
+    )
+
+    running = os.system(run_command)
+    print("Finished loading geolocation info. Running code:", running)
 
 
 def deploy_http(username, keyfile, display=False):

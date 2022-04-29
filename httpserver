@@ -235,8 +235,6 @@ class Cache:
         if self.current_size > MAX_CACHE_SIZE_BYTES:
             self.remove_least_freq_used()
 
-        # filepath = self.cached_folder + '/' + title
-
         # Write the contents to the file
         with open(filepath, "wb") as wfile:
             wfile.write(response_content)
@@ -248,8 +246,6 @@ class Cache:
 
     def get_file(self, filepath):
         # for cache run when that are not zipped
-        # file_to_open = self.cached_folder + "/" + filepath
-
         with open(filepath, "rb") as f:
             contents = f.read()
 
