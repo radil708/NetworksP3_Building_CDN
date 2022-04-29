@@ -20,6 +20,9 @@ geo-ipv4.csv
 #ignore this file
 /ipdb/geo-ipv4.csv
 
+geo-ipv4.csv.zip
+/geo-ipv4.csv.zip
+
 # Distribution / packaging
 .Python
 env/

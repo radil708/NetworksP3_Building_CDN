@@ -1,56 +1,49 @@
 #!/usr/bin/env python3
 import os
 import sys
+import argparse
 import threading
 
-KEY = "~/.ssh/id_ed25519.pub"
+DEFAULT_S_KEY = "~/.ssh/id_ed25519.pub"
+DEFAULT_R_KEY = "~/.ssh/id_rsa"
+DEFAULT_USERNAME = "team_t"
+DEFAULT_PORT = 40015
+DEFAULT_DOMAIN = "cs5700cdn.example.com"
+DNS_FILE_DEPENDENCIES =['dns.py', 'dnsDriver.py', 'dnsserver', 'geo_db.py']
+
 DNS_NODE = "p5-dns.5700.network"
 HTTP_NODES = ["p5-http-a.5700.network" ,"p5-http-b.5700.network", "p5-http-c.5700.network",
                 "p5-http-d.5700.network", "p5-http-e.5700.network", "p5-http-f.5700.network", "p5-http-g.5700.network"]
 BUILD_SERVER = "cs5700cdnproject.ccs.neu.edu"
 ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
-DNS_FILE_DEPENDENCIES =['dns.py', 'dnsDriver.py', 'dnsserver', 'geo_db.py']
+
 
 # ./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 # ./deployCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n shouldBeDomainName -u team_t -i ~/.ssh/id_ed25519.pub
 
-
-def parse_args(args_list):
-    #print(args_list)
-    port, origin_server, domain_name, username, keyfile = None, None, None, None, None
-
-    for i in range(len(args_list)):
-        if args_list[i] == "-p":
-            port = args_list[i + 1]
-        elif args_list[i] == "-o":
-            origin_server = args_list[i + 1]
-        elif args_list[i] == "-n":
-            domain_name = args_list[i + 1]
-        elif args_list[i] == "-u":
-            username = args_list[i + 1]
-        elif args_list[i] == "-i":
-            keyfile = args_list[i + 1]
-
-    return port, origin_server, domain_name, username, keyfile
-
-def run_copy_to_dns(file_name,keyfile_path, username_in):
+def run_copy_to_dns(file_name,keyfile_path, username_in, display=False):
     copy_cmd = f"scp -i {keyfile_path} {file_name} {username_in}@{DNS_NODE}:."
-    print(copy_cmd)
-    os.system(copy_cmd)
-    print(f"Copied {file_name} to {username_in}@{DNS_NODE} ")
-    print("--------------------------------------------------\n")
 
-def deploy_dns(username, keyfile):
-    # SCP file to the dns server and then SSH into dnsserver.py to start the dns
+    if display == True:
+        print("Running Command: " + copy_cmd)
+
+    os.system(copy_cmd)
+
+    if display == True:
+        print("--------------------------------------------------\n")
+
+def deploy_dns(username, keyfile, display=False):
     # copy files to dns server
-    print("Deploying DNS Files to DNS Server:\n")
+    if display ==True:
+        print("Deploying DNS Files to DNS Server:\n")
 
     try:
         copy_cmd = 'cp dnsDriver.py dnsserver'
         os.system(copy_cmd)
         create_exec_cmd = 'chmod u+x dnsserver'
         os.system(create_exec_cmd)
-        print("created fresh copy of ./dnsserver exec\n")
+        if display == True:
+            print("created fresh copy of ./dnsserver exec\n")
     except Exception as e:
         print(e)
         print("Unable to turn dnsDriver.py into a an executable")
@@ -58,15 +51,16 @@ def deploy_dns(username, keyfile):
     try:
         dos2cmd ='dos2unix dnsserver'
         os.system(dos2cmd)
+        print("\n",end='')
     except Exception as e:
         print(e)
-        print("Unable to convert dnsserver to unix format, dos2unix command not recognized")
+        print("dos2unix command not recognized, Continuing Program")
 
 
     #------------------------------------------------------
     try:
         for file in DNS_FILE_DEPENDENCIES:
-            run_copy_to_dns(file, keyfile,username)
+            run_copy_to_dns(file, keyfile,username,display)
     except Exception as e:
         print(e)
         print("Failed to deploy DNS, please check all files present and in main directory\n"
@@ -75,17 +69,21 @@ def deploy_dns(username, keyfile):
               "2.) dnsDriver.py\n"
               "3.) dnsserver\n"
               "4.) geo_db.py\n")
-        print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE")
+        print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE\n")
 
-    print("DNS DEPLOYMENT RUN\n-----------------------------------------\n")
+    if display == True:
+        print("DNS DEPLOYMENT SCRIPT HAS BEEN RUN\n-----------------------------------------\n")
     
-def deploy_http(username, keyfile):
+def deploy_http(username, keyfile, display = False):
     # Deploy httpserver to each replica server
     for node in HTTP_NODES:
-        print("Deploying to http server:", node)
+        if display == True:
+            print("Deploying to http server:", node)
+
         scp_command = (
             "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
+
         os.system(scp_command)
 
         ssh_command = (
@@ -100,15 +98,70 @@ def deploy_http(username, keyfile):
             + "/httpserver'"
         )
         os.system(ssh_command)
-        print("Completed httpserver deploy to:", node)
+
+        if display == True:
+            print("Completed httpserver deploy to:", node)
+            print("-------------------------------------------------")
 
 def main():
-    #TODO add warning if one of the var is NONE
-    # add exclusive default arg??
-    port, origin_server, domain_name, username, keyfile = parse_args(sys.argv[1:])
-    print(port, origin_server, domain_name, username, keyfile)
+    parser = argparse.ArgumentParser(description='Parser for dnsserver args')
+    # Required args according to project requirements
+    parser.add_argument('-p', '--port', metavar='', type=int, help='Port that the dns server will bind to')
+    parser.add_argument('-o', '--origin', metavar='', help='origin server containing all html files')
+    parser.add_argument('-n', '--domain_name', metavar='',
+                        help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
+                             'replica IPs')
+    parser.add_argument('-i', '--keyfile', metavar='', help='path to keyfile')
+    parser.add_argument('-u', '--username', metavar='', help='username associated with key file')
 
-    deploy_dns(username, keyfile)
-    deploy_http(username, keyfile)
+    #---------------------------------------------------------------------------------
+    # custom args added
+    parser.add_argument('-d', '--default', metavar='',
+                        help='optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut '
+                             'statements')
+    parser.add_argument('-s', '--display', metavar='',
+                        help='optional arg, if not None displays print statements')
+    args = parser.parse_args()
+
+    if args.default != None:
+        argUser = args.default.lower()
+        if argUser == 'r':
+            args.keyfile = DEFAULT_R_KEY
+        elif argUser =='s':
+            args.keyfile = DEFAULT_S_KEY
+        else:
+            print(f"{args.default} in invalid value, please use 'r' or 's' as args")
+            print("EXITING PROGRAM")
+            exit(0)
+
+        args.port = DEFAULT_PORT
+
+        args.origin = ORIGIN_SERVER
+        args.username = DEFAULT_USERNAME
+        args.display = 1
+        args.domain_name = DEFAULT_DOMAIN
+    #--------------------------------------------------------------------------------
+    else:
+        if (args.port == None or args.origin == None or args.domain_name == None
+                or args.keyfile == None or args.username == None):
+            print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
+            print("EXITING DEPLOY SCRIPT")
+            exit(0)
+
+    print(f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
+          f"\nPort:{args.port}"
+          f"\nOrigin: {args.origin}"
+          f"\nDomain: {args.domain_name}"
+          f"\nKeyfile: {args.keyfile}"
+          f"\nUsername: {args.username}")
+    print("------------------------------\n")
+
+    if args.display != None:
+        args.display = True
+    else:
+        args.display = False
+
+    deploy_dns(args.username, args.keyfile,display=args.display)
+    deploy_http(args.username, args.username,display=args.display)
 
 main()

@@ -183,8 +183,8 @@ class DNSServer:
         target_site = self.get_website_query(client_request)
         return self.make_response(target_site)
 
-    def get_distance_between_two_points(self, client_loc: tuple[float, float],
-                                        replica_loc: tuple[float, float]) -> float:
+    def get_distance_between_two_points(self, client_loc: tuple,
+                                        replica_loc: tuple) -> float:
         '''
         This method determines the distance in KM between
         the client loc and replica loc
@@ -204,7 +204,7 @@ class DNSServer:
         calc_2 = 2 * atan2(sqrt(calc_1), sqrt(1 - calc_1))
         return calc_2 * 6373.0
 
-    def get_closest_replica(self, client_loc: tuple[float, float], display: bool = False) -> tuple[float, str]:
+    def get_closest_replica(self, client_loc: tuple, display: bool = False) -> tuple:
         '''
         Calculates the closest replica server to the client
         :param client_loc: Tuple(lat,long) -  a tuple containing the lat and long of a client machine

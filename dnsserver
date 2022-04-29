@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 from dns import *
-import socket
 
 #TODO REMOVE THESE DEFAULTS LATER
 DEFAULT_PORT = 40015
