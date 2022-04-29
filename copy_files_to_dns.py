@@ -4,7 +4,7 @@ from pathlib import Path
 key_path = "~/.ssh/id_rsa"
 server = "team_t@p5-dns.5700.network"
 
-file_list =['dns.py', 'dnsDriver.py','geo-ipv4.zip','dnsserver']
+DNS_FILE_DEPENDENCIES =['dns.py', 'dnsDriver.py', 'dnsserver', 'geo_db.py']
 
 def run_DNS_make():
     cmd = 'make -f makeDNSServer'
@@ -22,7 +22,7 @@ def run_copy(file_name):
 
 def main():
     run_DNS_make()
-    for file in file_list:
+    for file in DNS_FILE_DEPENDENCIES:
         run_copy(file)
 main()
 

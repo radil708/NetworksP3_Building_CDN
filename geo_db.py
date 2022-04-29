@@ -3,6 +3,17 @@ from os import getcwd,listdir
 import zipfile
 import os
 from ipaddress import IPv4Address
+import requests
+
+ZIP_URL = "https://github.com/sapics/ip-location-db/blob/master/geolite2-city/geolite2-city-ipv4.csv.gz"
+ZIP_URL_BACKUP = "https://github.com/radil708/GeoFile/blob/master/geo_info.zip"
+
+def download_raw_zip_file(src_url):
+    r = requests.get(src_url, stream=True)
+    with open('geo-ipv4.zip', 'wb') as f:
+        for chunk in r.raw.stream(1024, decode_content=False):
+            if chunk:
+                f.write(chunk)
 
 
 class geo_db():
@@ -12,8 +23,32 @@ class geo_db():
 
         # check if zip file exists
         if not (exists('geo-ipv4.zip')):
-            print("MISSING ZIP FILE, EXITING PROGRAM")
-            exit(1)
+            if display == True:
+                print("MISSING ZIP FILE, ATTEMPTING TO DOWNLOAD FROM PRIMARY SOURCE")
+
+            #Download zip if it doesn't exists
+            try:
+                download_raw_zip_file(ZIP_URL)
+            except Exception as e:
+                if display == True:
+                    print(e)
+                    print("FAILED to extract from primary source\n"
+                          "ATTEMPTING TO DOWNLOAD FROM SECONDARY SOURCE\n"
+                          "==============================================\n")
+                try:
+                    download_raw_zip_file(ZIP_URL_BACKUP)
+                except Exception as e:
+                    if display == True:
+                        print(e)
+                        print("FAILED to extract from secondary source\n"
+                              f"Please check the urls to see if they contain zip files\n"
+                              f"1.) {ZIP_URL}\n"
+                              f"2.) {ZIP_URL_BACKUP}"
+                              "==============================================\n")
+                    print("ZIP FILE DOWNLOAD ERROR; Please run dns in default mode to see debug statements"
+                          "default mode cmd you should run: './dnsserver -d 1'\n"
+                          "EXITING PROGRAM")
+                    exit(0)
 #
         # check if csv file exists, if not extract to folder
         if not exists('geo-ipv4.csv'):
@@ -28,7 +63,7 @@ class geo_db():
                 print("+++++++++++++++++++++++++++++++++++++++++\n")
         else:
             if display == True:
-                print("geo db already exists, continuing program")
+                print("geozip file already exists, continuing program")
                 print("+++++++++++++++++++++++++++++++++++++++++\n")
 
 
@@ -56,25 +91,6 @@ class geo_db():
                     exit(0)
 
             self.len_search_space = len(self.ipv4_search_space)
-
-
-        if os.name == "nt":
-            with open(file= "geo-ipv4.csv", encoding="utf8", errors="surrogateescape") as raw_csv:
-                try:
-                    for line in raw_csv.readlines():
-                        temp = line.split(",")
-                        self.ipv4_search_space.append((temp[0], temp[1]))
-                        self.ipv4_dict[(temp[0], temp[1])] = (temp[-3], temp[-2])
-                except IndexError:
-                    print(temp)
-                    exit(0)
-                except KeyboardInterrupt:
-                    print("\nKeyboard Interrupt Occured")
-                    print("EXITING PROGRAM")
-                    exit(0)
-
-            self.len_search_space = len(self.ipv4_search_space)
-
 
         if display == True:
             print("Build completed, geoCache Ready")
