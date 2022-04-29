@@ -72,7 +72,7 @@ class HttpServer:
             ping_response = os.popen(f"ping -c 3 {client_ip}").read()
 
             # Parse the ping response for avg_rtt
-            avg_rtt = int(ping_response.split('\n')[-2].split('=')[1].split('/')[1])
+            avg_rtt = float(ping_response.split('\n')[-2].split('=')[1].split('/')[1])
             
             # Add ping rtt to the local dict
             self.client_ip_ping_dict[client_ip] = avg_rtt
