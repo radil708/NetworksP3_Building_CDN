@@ -30,8 +30,6 @@ def run_copy_to_dns(file_name,keyfile_path, username_in, display=False):
     os.system(copy_cmd)
 
     if display == True:
-        print(copy_cmd)
-        print(f"Copied {file_name} to {username_in}@{DNS_NODE} ")
         print("--------------------------------------------------\n")
 
 def deploy_dns(username, keyfile, display=False):
@@ -62,7 +60,7 @@ def deploy_dns(username, keyfile, display=False):
     #------------------------------------------------------
     try:
         for file in DNS_FILE_DEPENDENCIES:
-            run_copy_to_dns(file, keyfile,username)
+            run_copy_to_dns(file, keyfile,username,display)
     except Exception as e:
         print(e)
         print("Failed to deploy DNS, please check all files present and in main directory\n"
@@ -103,6 +101,7 @@ def deploy_http(username, keyfile, display = False):
 
         if display == True:
             print("Completed httpserver deploy to:", node)
+            print("-------------------------------------------------")
 
 def main():
     parser = argparse.ArgumentParser(description='Parser for dnsserver args')
