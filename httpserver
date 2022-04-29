@@ -68,9 +68,12 @@ class HttpServer:
         if client_ip in self.client_ip_ping_dict:
             avg_rtt = self.client_ip_ping_dict[client_ip]
         else:
-            # Ping the client 3 times
-            ping_response = os.popen(f"ping -c 3 {client_ip}").read()
-
+            try:
+                # Ping the client 3 times
+                ping_response = os.popen(f"ping -c 3 {client_ip}").read()
+            except Exception as e:
+                print(f"Could not successfully ping client: {client_ip} from {socket.gethostname()}")
+                return
             # Parse the ping response for avg_rtt
             avg_rtt = float(ping_response.split('\n')[-2].split('=')[1].split('/')[1])
             
@@ -79,7 +82,7 @@ class HttpServer:
 
         # Communicate the ping rtt to the dns
         response_dns = f"PING_RTT {client_ip} {avg_rtt}".encode()
-        dns_socket.sendall(response_dns)
+        dns_socket.send(response_dns)
 
     def receive_client_rq(self):
         self.sock.listen(1)
