@@ -8,7 +8,7 @@ import shutil
 
 ZIP_URL = "https://github.com/sapics/ip-location-db/blob/master/geolite2-city/geolite2-city-ipv4.csv.gz?raw=true"
 ZIP_URL_BACKUP = ("https://github.com/radil708/GeoFile/blob/master/geo_info.csv.gz?raw=true")
-
+#
 
 def download_raw_zip_file(src_url):
     r = requests.get(src_url, stream=True)

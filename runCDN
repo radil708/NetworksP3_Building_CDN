@@ -139,7 +139,7 @@ def main():
             print(args.default, " is invalid value, please use 'r' or 's' as args")
             print("EXITING RUN SCRIPT")
             exit(0)
-
+#
         args.port = DEFAULT_PORT
 
         args.origin = ORIGIN_SERVER

@@ -41,7 +41,7 @@ def main():
 
     if args.display != None:
         display_prints = True
-
+#
     if args.default != None:
         # running in default mode will show print statements
         args.port = DEFAULT_PORT

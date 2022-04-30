@@ -48,7 +48,7 @@ class DNSServer:
         self.replica_ips = {}
         self.customer_name = customer_name
         self.lst_valid_replica_domains = []
-
+#
         for each in REPLICA_SERVER_DOMAINS:
             try:
                 self.replica_ips[each] = socket.gethostbyname(each)
