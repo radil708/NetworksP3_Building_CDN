@@ -50,6 +50,7 @@ def deploy_dns(username, keyfile, display=False):
     if display == True:
         print("Deploying DNS Files to DNS Server:\n")
 
+    # command to turn driver into dnsserver file
     try:
         copy_cmd = "cp dnsDriver.py dnsserver"
         os.system(copy_cmd)

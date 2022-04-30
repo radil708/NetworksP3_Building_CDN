@@ -35,6 +35,7 @@ def main():
                 )
             try:
                 download_raw_zip_file(ZIP_URL_BACKUP)
+                print("Zip file successfully downloaded")
             except Exception as e:
                 print(e)
                 print(
