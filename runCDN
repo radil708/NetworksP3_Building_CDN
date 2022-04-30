@@ -27,7 +27,7 @@ ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./runCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
 
 
-def run_dns(port, username, keyfile, domain_name):
+def run_dns(port, username, keyfile, domain_name, display = False):
     # Run dnsserver.py on dns node
     run_command = (
         "ssh -i "
@@ -42,15 +42,16 @@ def run_dns(port, username, keyfile, domain_name):
         + domain_name
         + "'"
     )
-    print("Running dns command:\n")
+    if display == True:
+        print("Running dns command:\n")
     os.system(run_command)
 
 
-def thread_runs(port, username, origin, keyfile):
+def thread_runs(port, username, origin, keyfile, display=False):
     threads = []
     for node in HTTP_NODES:
         t = threading.Thread(
-            target=run_http, args=(node, port, username, origin, keyfile)
+            target=run_http, args=(node, port, username, origin, keyfile,display)
         )
         t.setDaemon(True)
         threads.append(t)
@@ -62,7 +63,7 @@ def thread_runs(port, username, origin, keyfile):
         t.join()
 
 
-def run_http(node, port, username, origin, keyfile):
+def run_http(node, port, username, origin, keyfile,display=False):
     # ssh -i ~/.ssh/id_ed25519.pub team_t@p5-http-d.5700.network './httpserver -p 40015 -o origin'
     # Run httpserver on each replica server
     # for node in HTTP_NODES:
@@ -81,7 +82,8 @@ def run_http(node, port, username, origin, keyfile):
     )
 
     running = os.system(run_command)
-    print("Running httpserver on", node, "command returns:", running)
+    if display == True:
+        print("Running httpserver on", node, "command returns:", running)
     # subprocess.run(args=run_command, shell=True, check=True)
 
 
@@ -134,8 +136,8 @@ def main():
         elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
-            print(args.default, " in invalid value, please use 'r' or 's' as args")
-            print("EXITING PROGRAM")
+            print(args.default, " is invalid value, please use 'r' or 's' as args")
+            print("EXITING RUN SCRIPT")
             exit(0)
 
         args.port = DEFAULT_PORT
@@ -154,11 +156,11 @@ def main():
             or args.username == None
         ):
             print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
-            print("EXITING DEPLOY SCRIPT")
+            print("EXITING RUN SCRIPT")
             exit(0)
 
     print(
-        "USER ENTERED VALUES FOR DEPLOY SCRIPT:",
+        "USER ENTERED VALUES FOR RUN SCRIPT:",
         "\nPort:",
         args.port,
         "\nOrigin:",
@@ -177,8 +179,8 @@ def main():
     else:
         args.display = False
 
-    run_dns(args.port, args.username, args.keyfile, args.domain_name)
-    thread_runs(args.port, args.username, args.origin, args.keyfile)
+    run_dns(args.port, args.username, args.keyfile, args.domain_name, args.display)
+    thread_runs(args.port, args.username, args.origin, args.keyfile,args.display)
     # run_http(port, username, origin_server, keyfile)
 
 

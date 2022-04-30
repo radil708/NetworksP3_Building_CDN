@@ -7,7 +7,7 @@ DEFAULT_R_KEY = "~/.ssh/id_rsa"
 DEFAULT_USERNAME = "team_t"
 DEFAULT_PORT = 40015
 DEFAULT_DOMAIN = "cs5700cdn.example.com"
-DNS_FILE_DEPENDENCIES = ["dns.py", "dnsDriver.py", "dnsserver", "geo_db.py"]
+DNS_FILE_DEPENDENCIES = ["dns.py", "dnsDriver.py", "dnsserver", "geo_db.py", "pre_dns_run_setup"]
 
 DNS_NODE = "p5-dns.5700.network"
 HTTP_NODES = [
@@ -76,10 +76,13 @@ def deploy_dns(username, keyfile, display=False):
             "2.) dnsDriver.py\n"
             "3.) dnsserver\n"
             "4.) geo_db.py\n"
+            "5.) pre_dns_run_setup\n"
         )
         print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE\n")
 
-def run_geocaching(keyfile, username, dnsserver):
+
+
+def run_geocaching(keyfile, username, dnsserver, display = False):
     run_command = (
         "ssh -i "
         + keyfile
@@ -87,11 +90,12 @@ def run_geocaching(keyfile, username, dnsserver):
         + username
         + "@"
         + dnsserver
-        + " 'python3 geo_db.py'"
+        + " 'python3 pre_dns_run_setup'"
     )
 
     running = os.system(run_command)
-    print("Finished loading geolocation info. Running code:", running)
+    if display == True:
+        print("Finished loading geolocation zipfile and csv. Running code:", running)
 
 
 def deploy_http(username, keyfile, display=False):
@@ -174,7 +178,7 @@ def main():
             args.keyfile = DEFAULT_S_KEY
         else:
             print(f"{args.default} in invalid value, please use 'r' or 's' as args")
-            print("EXITING PROGRAM")
+            print("EXITING DEPLOY SCRIPT")
             exit(0)
 
         args.port = DEFAULT_PORT
@@ -212,6 +216,7 @@ def main():
         args.display = False
 
     deploy_dns(args.username, args.keyfile, display=args.display)
+    run_geocaching(keyfile=args.keyfile,username=args,dnsserver=DNS_NODE,display=args.display)
     deploy_http(args.username, args.username, display=args.display)
 
 

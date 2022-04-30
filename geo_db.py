@@ -28,13 +28,6 @@ def download_gzip(src_url):
         with gzip.GzipFile(fileobj=response) as uncompressed:
             file_content = uncompressed.read()
 
-
-def use_tar(src_url):
-    response = requests.get(src_url, stream=True)
-    file = tarfile.open(fileobj=response.raw, mode="r|gz")
-    file.extractall(path=".")
-
-
 class geo_db:
     def __init__(self, display=False):
 
@@ -48,6 +41,8 @@ class geo_db:
             # Download zip if it doesn't exists
             try:
                 download_raw_zip_file(ZIP_URL_BACKUP)
+                if display == True:
+                    print("Zip file successfully downloaded")
             except Exception as e:
                 if display == True:
                     print(e)
