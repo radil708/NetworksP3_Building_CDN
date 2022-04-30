@@ -257,7 +257,7 @@ def main():
     
     for i in range(len(sys.argv[1:])):
         if sys.argv[i] == "-p":
-            port = sys.argv[i + 1]
+            port = int(sys.argv[i + 1])
         elif sys.argv[i] == "-o":
             origin = sys.argv[i + 1]
     #print("Listening on port", port, "origin is ", origin)

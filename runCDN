@@ -36,15 +36,16 @@ def run_dns(port, username, keyfile, domain_name, display = False):
         + username
         + "@"
         + DNS_NODE
-        + " './dnsserver -p "
+        + " nohup ./dnsserver -p "
         + str(port)
         + " -n "
         + domain_name
-        + "'"
+        + " &"
     )
+    value = os.system(run_command)
+
     if display == True:
-        print("Running dns command:\n")
-    os.system(run_command)
+        print("Running dns command:", value)
 
 
 def thread_runs(port, username, origin, keyfile, display=False):
