@@ -33,8 +33,11 @@ class geo_db:
 
         path = None
 
+        if display == True:
+            print("Starting to build geoCache...")
+
         # check if zip file exists
-        if not (exists("geo-ipv4.zip")):
+        if not (exists("geo-ipv4.csv.zip")):
             if display == True:
                 print("MISSING ZIP FILE, ATTEMPTING TO DOWNLOAD FROM PRIMARY SOURCE")
 
@@ -69,6 +72,10 @@ class geo_db:
                         "EXITING PROGRAM"
                     )
                     exit(0)
+        else:
+            if display == True:
+                print("Zip file Present, Proceeding...")
+                print("+++++++++++++++++++++++++++++++++++++++++\n")
         #
         # check if csv file exists, if not extract to folder
         if not exists("geo-ipv4.csv"):
@@ -84,7 +91,7 @@ class geo_db:
                 print("+++++++++++++++++++++++++++++++++++++++++\n")
         else:
             if display == True:
-                print("geozip file already exists, continuing program")
+                print("geozip file already exists, Proceeding...")
                 print("+++++++++++++++++++++++++++++++++++++++++\n")
 
         # key will be a tuple of ipv4 addr boundaries and value will be a tuple of lat and long as strings
