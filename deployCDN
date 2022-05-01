@@ -116,6 +116,13 @@ def deploy_http(username, keyfile, display=False):
             print("Deploying to http server:", node)
         # scp -i ~/.ssh/id_ed25519.pub team_t@p5-http-a.5700.network:.
 
+        try:
+            os.system("dos2unix httpserver")
+            print("Converted http server to unix format")
+        except Exception as e:
+            print(e)
+            print("unable to call dos2unix for httpserver")
+
         scp_command = (
             "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
@@ -171,7 +178,6 @@ def main():
         "--default",
         metavar="",
         help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
-        "statements",
     )
     parser.add_argument(
         "-s",

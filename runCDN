@@ -146,7 +146,6 @@ def main():
         metavar="",
         help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, "
              "s for sinhaut "
-             "statements",
     )
     parser.add_argument(
         "-s",
