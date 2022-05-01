@@ -23,9 +23,16 @@ global CLIENT_SOCKETS
 CLIENT_SOCKETS = []
 
 global ACTIVE_MEASUREMENT_THREAD
-
+global ACTIVE_THREAD_CONTINUE_BOOL
+ACTIVE_THREAD_CONTINUE_BOOL = True
 global VALID_REPLICA_DOMAINS
 VALID_REPLICA_DOMAINS = []
+
+global IP_TO_VALID_REP_DOMAIN_DICT
+IP_TO_VALID_REP_DOMAIN_DICT = {}
+
+
+
 
 PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 
@@ -49,13 +56,94 @@ Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP pack
 and get the avg RTT of each one???
 """
 
-# class ActMeasureThread(Thread):
-#     global CLIENTS_CONNECTED_RECORD
-#     global CLIENTS_CHECK_RTT
-#     global CLIENT_SOCKETS
-#     global VALID_REPLICA_DOMAINS
-#
-#     def __init__(self):
+class ActMeasureThread(Thread):
+
+
+    def __init__(self,hostServerPort, display=False):
+        Thread.__init__(self)
+        global CLIENTS_CONNECTED_RECORD
+        global CLIENTS_CHECK_RTT
+        global CLIENT_SOCKETS
+        global VALID_REPLICA_DOMAINS
+        global ACTIVE_THREAD_CONTINUE_BOOL
+        global IP_TO_VALID_REP_DOMAIN_DICT
+
+
+        #should sockets be made then closed instead of being open the entire time??
+        print("65 VALID REPLICA LIST ", VALID_REPLICA_DOMAINS)
+        for valid_rep_dom in VALID_REPLICA_DOMAINS:
+            try:
+                s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                domainIP = socket.gethostbyname(valid_rep_dom)
+                s_.connect((domainIP, hostServerPort))
+                if display == True:
+                    print(f"TCP Client Socket created, connected to host:\n"
+                          f"domain:{valid_rep_dom}\n"
+                          f"host ip: {domainIP}\n"
+                          f"host port: {hostServerPort}\n")
+                    print("======================\n")
+                CLIENT_SOCKETS.append(s_)
+            except Exception as e:
+                ACTIVE_THREAD_CONTINUE_BOOL = False
+                print(e)
+                print("TCP Client unable to connect to host\n"
+                      f"domain:{valid_rep_dom}\n"
+                      f"host ip: {domainIP}\n"
+                      f"host port: {hostServerPort}\n")
+                print("======================\n")
+                continue
+
+    #Override run methods
+    def run(self):
+        global CLIENTS_CONNECTED_RECORD
+        global CLIENTS_CHECK_RTT
+        global CLIENT_SOCKETS
+        global VALID_REPLICA_DOMAINS
+        global ACTIVE_THREAD_CONTINUE_BOOL
+        global IP_TO_VALID_REP_DOMAIN_DICT
+        while ACTIVE_THREAD_CONTINUE_BOOL == True:
+            if len(CLIENTS_CHECK_RTT) > 0:
+                client_rtt_list = []
+                client_ip = CLIENTS_CHECK_RTT.pop(0)
+                for each_socket in CLIENT_SOCKETS:
+                    try:
+                        PING_QUERY = "PING " + client_ip
+                        each_socket.send(PING_QUERY.encode())
+                        data = each_socket.recv(1024).decode()
+                        data_lst = data.split(" ")
+                        # data_lst = PING_RTT 45.33.50.187 15.223.19.203 65.299
+                        #tuple is (rtt, client ip, replica ip)
+                        client_rtt_list.append((float(data_lst[3]), data_lst[2],data_lst[1]))
+                        #TODO DELETE
+                        print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
+                        print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
+                    except Exception as e:
+                        ACTIVE_THREAD_CONTINUE_BOOL = False
+                        print(e," line 103")
+                        continue
+            # sort by RTT which is the first element of a tuple
+                try:
+                    client_rtt_list.sort(key=lambda x: x[0])
+                    shortest_rtt_tuple = client_rtt_list.pop(0)
+                    print(f"Fastest rtt {shortest_rtt_tuple[0]} to client {shortest_rtt_tuple[1]} "
+                          f"from replica {shortest_rtt_tuple[2]}")
+                except Exception as e:
+                    print(e," 114")
+                    print("No responses from http pings")
+                try:
+                    print(f"Current replica for client:{shortest_rtt_tuple[1]} is {CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]}")
+                    #TODO below are the correct uncomment after checking changes stick
+                    print(f"Setting to IP_TO_VALID_REP_DOMAIN_DICT[{shortest_rtt_tuple[2]}]")
+                    CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]
+                except Exception as e:
+                    print(e, " line 120")
+                    continue
+
+
+            else:
+                continue
+
+        self.join()
 
 
 
@@ -67,6 +155,8 @@ class DNSServer:
     global CLIENT_SOCKETS
     global ACTIVE_MEASUREMENT_THREAD
     global VALID_REPLICA_DOMAINS
+    global ACTIVE_THREAD_CONTINUE_BOOL
+    global IP_TO_VALID_REP_DOMAIN_DICT
 
     def __init__(
         self,
@@ -76,14 +166,24 @@ class DNSServer:
         display_geo_load: bool = False,
     ) -> None:
 
+        global CLIENTS_CONNECTED_RECORD
+        global CLIENTS_CHECK_RTT
+        global CLIENT_SOCKETS
+        global ACTIVE_MEASUREMENT_THREAD
+        global VALID_REPLICA_DOMAINS
+        global ACTIVE_THREAD_CONTINUE_BOOL
+        global IP_TO_VALID_REP_DOMAIN_DICT
+
         self.replica_ips = {}
         self.customer_name = customer_name
         VALID_REPLICA_DOMAINS = []
 #
         for each in REPLICA_SERVER_DOMAINS:
             try:
-                self.replica_ips[each] = socket.gethostbyname(each)
+                replica_ip = socket.gethostbyname(each)
+                self.replica_ips[each] = replica_ip
                 VALID_REPLICA_DOMAINS.append(each)
+                IP_TO_VALID_REP_DOMAIN_DICT[replica_ip] = each
             except socket.gaierror:
                 if display == True:
                     print(f"Replica server: {each} UNAVAILABLE")
@@ -142,7 +242,7 @@ class DNSServer:
             self.sock.close()
 
             if display == True:
-                print("ERROR: Could not bind to socket\tFailed to create server")
+                print("ERROR: Could not bind DNS Server to socket\tFailed to create server")
                 print("EXITING PROGRAM")
 
             exit(0)
@@ -159,6 +259,12 @@ class DNSServer:
                 f"Resolver set up for domain: {self.customer_name}"
             )
             print(PLUS_DIVIDER)
+
+        #TODO DELETE
+        print("235 VALID REPLICA LIST ", VALID_REPLICA_DOMAINS)
+        ACTIVE_THREAD_CONTINUE_BOOL = True
+        ACTIVE_MEASUREMENT_THREAD = ActMeasureThread(dns_port,display)
+        ACTIVE_MEASUREMENT_THREAD.start()
 
     def close_server(self, display_close_msg: bool = False):
         """
@@ -320,6 +426,7 @@ class DNSServer:
                     data, client_conn_info = self.sock.recvfrom(512)
 
                 except KeyboardInterrupt:
+                    ACTIVE_THREAD_CONTINUE_BOOL = False
                     if display_request == True:
                         print("\nKeyboard Interrupt Occured")
                         self.close_server(True)
@@ -364,6 +471,10 @@ class DNSServer:
                 # if new client find closest replica and store the pair for future
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
+                    # add client ip to do RTT checks
+                    CLIENTS_CHECK_RTT.append(client_ip)
+                    if display_request == True:
+                        print(f"Adding {client_ip} to check for active measurement")
                     try:
                         # tuple (distance, replica domain)
                         closest_replica: tuple[float, str] = self.get_closest_replica(
@@ -425,6 +536,7 @@ class DNSServer:
                     print(PLUS_DIVIDER)
 
         except KeyboardInterrupt:
+            ACTIVE_THREAD_CONTINUE_BOOL = False
             if display_request == True:
                 print("\nKeyboard Interrupt Occured")
                 self.close_server(True)

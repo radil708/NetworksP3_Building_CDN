@@ -57,6 +57,7 @@ def main():
         current_socket.send("PING 15.223.19.203".encode())
         data = current_socket.recv(4096)
         print(data)
+        current_socket.close()
         print("=============================\n")
     # first = CLIENT_SOCKETS[0]
     # first.send("PING 15.223.19.203".encode())

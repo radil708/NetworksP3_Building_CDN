@@ -129,17 +129,25 @@ def main():
         help="optional arg, if not None displays print statements",
     )
     args = parser.parse_args()
-
+    runDNS = True
+    runHTTP= True
     if args.default != None:
         argUser = args.default.lower()
-        if argUser == "r":
+        args_lst = argUser.split("_")
+        if args_lst[0] == "r":
             args.keyfile = DEFAULT_R_KEY
-        elif argUser == "s":
+        elif args_lst[0] == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
-            print(args.default, " is invalid value, please use 'r' or 's' as args")
-            print("EXITING RUN SCRIPT")
+            print(f"{args.default} in invalid value, please use 'r' or 's' as args")
+            print("EXITING DEPLOY SCRIPT")
             exit(0)
+
+        if "dns" in args_lst and "http" not in args_lst:
+            runHTTP=False
+        elif "http" in args_lst and "dns" not in args_lst:
+            runDNS=False
+
 #
         args.port = DEFAULT_PORT
 
@@ -180,8 +188,11 @@ def main():
     else:
         args.display = False
 
-    run_dns(args.port, args.username, args.keyfile, args.domain_name, args.display)
-    thread_runs(args.port, args.username, args.origin, args.keyfile,args.display)
+    if runHTTP == True:
+        thread_runs(args.port, args.username, args.origin, args.keyfile, args.display)
+    if runDNS == True:
+        run_dns(args.port, args.username, args.keyfile, args.domain_name, args.display)
+
     # run_http(port, username, origin_server, keyfile)
 
 

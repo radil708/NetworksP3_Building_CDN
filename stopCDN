@@ -40,6 +40,19 @@ def stop_dns(username, keyfile):
     )
     os.system(ssh_command)
 
+    ssh_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + DNS_NODE
+            + " 'pkill -u "
+            + username
+            + " python3'"
+    )
+    os.system(ssh_command)
+
 
 def stop_http(username, keyfile):
     # STop httpserver to each replica server

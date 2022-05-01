@@ -175,17 +175,26 @@ def main():
         help="optional arg, if not None displays print statements",
     )
     args = parser.parse_args()
-
+    runDNS = True
+    runHTTP = True
     if args.default != None:
         argUser = args.default.lower()
-        if argUser == "r":
+        args_lst = argUser.split("_")
+        if args_lst[0] == "r":
             args.keyfile = DEFAULT_R_KEY
-        elif argUser == "s":
+        elif args_lst[0] == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
             print(f"{args.default} in invalid value, please use 'r' or 's' as args")
             print("EXITING DEPLOY SCRIPT")
             exit(0)
+
+        if "dns" in args_lst and "http" not in args_lst:
+            runHTTP=False
+        elif "http" in args_lst and "dns" not in args_lst:
+            runDNS=False
+
+
 
         args.port = DEFAULT_PORT
 
@@ -221,14 +230,18 @@ def main():
     else:
         args.display = False
 
-    deploy_dns(args.username, args.keyfile, display=args.display)
-    run_geocaching(
-        keyfile=args.keyfile,
-        username=args.username,
-        dnsserver=DNS_NODE,
-        display=args.display,
-    )
-    deploy_http(args.username, args.username, display=args.display)
+    #TODO add default running for non-default args
+    if runDNS == True:
+        deploy_dns(args.username, args.keyfile, display=args.display)
+        run_geocaching(
+            keyfile=args.keyfile,
+            username=args.username,
+            dnsserver=DNS_NODE,
+            display=args.display,
+        )
+
+    if runHTTP == True:
+        deploy_http(args.username, args.username, display=args.display)
 
 
 #
