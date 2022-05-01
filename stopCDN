@@ -51,6 +51,7 @@ def stop_dns(username, keyfile):
             + username
             + " python3'"
     )
+    #
     val_2 = os.system(ssh_command)
     if val_1 == 0 and val_2 == 0:
         print("DNS successfully killed")
