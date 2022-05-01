@@ -3,32 +3,114 @@ README
 High level approach:
 
 1. Scripts 
-    - deploy dns and http to the nodes using scp and update permissions
-    - runCDN 
-        - runs the dnsserver with the port and dns name given
-        - runs the httpserver on each replica node
-    - stopCDN - stops dnsserver and all httpservers
-    ***Custom flags have been added for testing purposes (-d , -f)
+    - deployCND:
+    	> deploys dns and http to the nodes using scp and update permissions
+
+    - runCDN:
+        > runs the dnsserver with the port and dns name passed
+        > runs the httpserver on each replica node with the port and origin args passed
+
+    - stopCDN:
+    	> stops dnsserver and all httpservers
+    How to use:
+		./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
+
+    ***Custom flags have been added for testing purposes on our side (-d , -f , -s)
+    	but they are optional and should NOT be used during speed testing of servers.
+
+    How to use:
+		./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+
+	*** Please refrain from using custom arg -s as that will tell the servers to print
+		status statements from the servers to the terminal, potentially slowing down the program
+		during speed testing. These statements are useful for keeping track
+		 of server events and debugging. If -s arg is not None then the server statements will print.
+
+	*** Custom arg -f used to apply the script to only one server, if not used
+		the default is to apply the script to both dnsserver and httpserver. It only
+		accepts dns or http as valid arguments
+	 	Example:./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile> -f dns
+	 		will ONLY run the dnsserver
+
+	 *** Custom arg -d can really only be used by us for our testing purposes. It is used
+	 		to set default values to the other arguments. Please do NOT use this argument
+	 		when running the scripts.
+
+-----------------------------------------------------------------------------------------------
+
 
 2. httpserver - uses a socket to listen for queries from client and return a html
     - Queries the origin server if the query is not cached (requests.get())
     - LFU cache is used to remove the least frequently requested query file from the cache
-    - Listens to dns requests to ping the client and return a rtt to the dnsserver
-    
-3. dnsserver - sets up geo database and uses a socket to listen to incoming requests
-    - listens for DNS queries from clients
-    - checks if dns query domain is allowed customer "name"
-    	> responds with nxdomain if query domain is not customer "name"
-    - gets all replica server ips
-    - gets all replica server locations via binary search of geo cache
-    - determines client location
-    - Determines closest replica server to client and sends dns packet with replica server ip
-    	in response
+    - Listens to tcp requests from tcp clients created in the dns
+     	to ping the client and return a rtt to the dns server for active measurement.
 
-ISSUES:
-- Port address in use sometimes - hard to test as the socket creation fails
+     How to run:
+     	./httpserver -p <port> -o <origin>
 
-WHO DID WHAT:
-Utkarshna - deploy/run/stop scripts, httpserver
-Ramzi - built dns server, implemented geo cache strategy, tested/verified geo functions,
-		built client.py file for testing dnsserver
+    *** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
+		http server status statements will be printed to the screen. Please do NOT use this argument when testing
+		for http server speed.
+
+
+----------------------------------------------------------------------------------------------
+3. dnsserver
+	- Utilizes active measurement in addition to geolocation
+
+	- Creates a udp socket to listen for incoming dns requests
+
+	- When a client sends a request to this server, the closest (distance wise) replica
+		server will be sent as a reply and this pair is mapped/saved in a dictionary.
+		> The dns will then create tcp client sockets that communicate with the replica
+			servers
+		> These client sockets will request the RTT information between the replica and client
+		> If the replica with the fastest RTT to client is NOT the same as the currently mapped
+			one, then the mapping is updated and so future dns queries by that client
+			are directed to the replica with the fastest RTT.
+		> This RTT query is performed on a different thread then the main dnsserver
+		> This update only occurs once per new client and so is self-rate-limiting
+
+	- The dns is setup to accept queries for the domain (-n arg) passed in by the user
+
+	- If the client's request has a domain that is not the user defined domain name (-n arg)
+		then it will send an NXDomain response.
+		> The code does allow for dig requests to be accepted though
+
+	How geolocation is setup:
+		- A zip file is downloaded by pre_dns_setup and unpacked.
+		- This file maps ranges of ip addresses to latitudes and longitudes
+		- geo_db is a class that manages getting this information. It also checks if the zip file/cvs file
+			exist and if they do not, will download them.
+		- geo_db utilizes binary search to find the the lat and long of any ip address passed in
+			geo_db.getLatLong("ip address") -> (lat,long)
+		- the DNSServer class has a function that will determine the distance between any two coordinates
+			and it is used to inform the server of the replica server closest to the client.
+			DNSserver.get_distance_between_two_points( (client lat, client long) , (replica lat, replica long) ) -> distance in KM
+
+	- Tests were made to verify distance calculations were correct and that the geolocation strategy was picking the
+		correct closest server (See geoCalcTest.py)
+
+	How to run:
+		./dnsserver -p <port> -n <name>
+
+	*** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
+		dnsserver status statements will be printed to the screen. Please do NOT use this argument when testing
+		for dnsserver speed.
+
+		Example of how to use it: ./dnsserver -p <port> -n <name> -s 1
+
+	File Dependencies for dnsserver:
+		1.) geo_db.py
+		2.) dns.py
+		3.) dnsDriver.py
+---------------------------------------------------------------------------------------------------------------------------------------
+Contributions:
+
+Utkarshna - wrote deploy/run/stop scripts,built httpserver, httpserver testing,
+ 			implemented active measurement code for http server side,
+ 			implemented Least Frequently Used (LFU) strategy
+
+Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
+ 		implemented geo cache strategy, tested/verified geo functions,
+ 		implemented argparser and custom flags for deploy/run/stop scripts

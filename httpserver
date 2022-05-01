@@ -96,7 +96,7 @@ class HttpServer:
             self.create_and_connect_socket()
             self.request_count = 0
 
-        self.sock.listen(5)
+        self.sock.listen(1)
 
         # Accept the socket connection from the client
         try:
