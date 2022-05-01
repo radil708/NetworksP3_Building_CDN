@@ -13,6 +13,7 @@ DEFAULT_PORT = 40015
 ORIGIN = "cs5700cdnorigin.ccs.neu.edu"
 MAX_CACHE_SIZE_BYTES = 1000000 * 19  # 19MB of cache
 MAX_CACHED_FILES = 1000
+ZIPPED = False
 
 """
 Handles the client request. Either gets the html from source or cache
@@ -138,11 +139,30 @@ class HttpServer:
 
         return client_request_page, client_socket
 
+    #####NOT ZIPPED
+    def get_html(self, client_request_page):
+        page_path = self.cached_folder + client_request_page
+        # print("Client rq page", client_request_page, "page path", page_path)
+
+        if page_path in self.cache.cached_files:
+            print("Found:", page_path, "is in the cache.")
+            self.cache.cached_files[page_path] += 1
+            return self.cache.get_file(page_path)
+        else:
+            print("Could not find:", page_path, "in zipped cache. Querying the origin.")
+
+            complete_url = "http://" + ORIGIN + ":8080" + client_request_page
+            response = requests.get(complete_url)
+
+            self.cache.add_to_cache(page_path, response.content)
+            return response.content
+
     def get_html_from_zipped(self, client_request_page):
         """
         Get the html content from zipped cache files.
         """
-        page_path = self.cached_folder + client_request_page + ".zip"
+        if ZIPPED:
+            page_path = self.cached_folder + client_request_page + ".zip"
 
         if page_path in self.cache.cached_files:
             if self.display:
@@ -167,7 +187,11 @@ class HttpServer:
             )
             response = requests.get(complete_url)
 
-            self.cache.add_to_zipped_cache(page_path, response.content)
+            if ZIPPED:
+                self.cache.add_to_zipped_cache(page_path, response.content)
+            else:
+                self.cache.add_to_cache(page_path, response.content)
+
             return response.content
 
     def send_html_response(self, client_rq, client_socket):
@@ -179,7 +203,10 @@ class HttpServer:
             response = "HTTP/1.1 204 No Content\r\n".encode("utf-8")
             client_socket.send(response)
         else:
-            response_content = self.get_html_from_zipped(client_rq)
+            if ZIPPED:
+                response_content = self.get_html_from_zipped(client_rq)
+            else:
+                response_content = self.get_html(client_rq)
             header = f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n"
             client_socket.send(header.encode("utf-8"))
             client_socket.send(response_content)
@@ -263,6 +290,26 @@ class Cache:
     def get_zipped_file(self, filepath):
         # Opens the zipped file, reads and returns the contents
         with gzip.open(filepath, "rb") as f:
+            contents = f.read()
+
+        return contents
+    
+    # NOT ZIPPED FUNCTIONS
+    def add_to_cache(self, filepath, response_content):
+        if self.current_size > MAX_CACHE_SIZE_BYTES:
+            self.remove_least_freq_used()
+
+        # Write the contents to the file
+        with open(filepath, "wb") as wfile:
+            wfile.write(response_content)
+
+        # Add to cache dict and current size
+        self.current_size += os.path.getsize(filepath)
+        self.cached_files[filepath] = 1
+
+    def get_file(self, filepath):
+        # for cache run when that are not zipped
+        with open(filepath, "rb") as f:
             contents = f.read()
 
         return contents
