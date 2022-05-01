@@ -19,7 +19,7 @@ def download_raw_zip_file(src_url):
 
 def main():
     # check if zip file exists
-    if not (exists("geo-ipv4.zip")):
+    if not (exists("geo-ipv4.csv.zip")):
         print("MISSING ZIP FILE, ATTEMPTING TO DOWNLOAD FROM PRIMARY SOURCE")
 
         # Download zip if it doesn't exists

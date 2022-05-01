@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import argparse
 
@@ -133,7 +133,7 @@ def main():
             exit(0)
 
     print(
-        "USER ENTERED VALUES FOR DEPLOY SCRIPT:",
+        "USER ENTERED VALUES FOR STOP SCRIPT:",
         "\nPort:",
         args.port,
         "\nOrigin:",

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
 import socket
+from threading import Thread
+
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
 from typing import Tuple
 
@@ -11,7 +13,19 @@ import random
 from urllib.parse import urlparse
 
 # Contains all clients that connected to dns server
+global CLIENTS_CONNECTED_RECORD
 CLIENTS_CONNECTED_RECORD = {}
+
+global CLIENTS_CHECK_RTT
+CLIENTS_CHECK_RTT = []
+
+global CLIENT_SOCKETS
+CLIENT_SOCKETS = []
+
+global ACTIVE_MEASUREMENT_THREAD
+
+global VALID_REPLICA_DOMAINS
+VALID_REPLICA_DOMAINS = []
 
 PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 
@@ -29,14 +43,31 @@ REPLICA_SERVER_DOMAINS = [
 """
 idea instead of geocache we could send a ping from DNS and spoof the ICMP packet's
 recieving ip address to be the ip address of every replica server
-Then just have the replica server constantly listenign for ICMP packets
+Then just have the replica server constantly listening for ICMP packets
 and if the ICMP packet is received by it then send the time received to DNS
 Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP packets
 and get the avg RTT of each one???
 """
 
+# class ActMeasureThread(Thread):
+#     global CLIENTS_CONNECTED_RECORD
+#     global CLIENTS_CHECK_RTT
+#     global CLIENT_SOCKETS
+#     global VALID_REPLICA_DOMAINS
+#
+#     def __init__(self):
+
+
+
+
 
 class DNSServer:
+    global CLIENTS_CONNECTED_RECORD
+    global CLIENTS_CHECK_RTT
+    global CLIENT_SOCKETS
+    global ACTIVE_MEASUREMENT_THREAD
+    global VALID_REPLICA_DOMAINS
+
     def __init__(
         self,
         dns_port: int,
@@ -47,12 +78,12 @@ class DNSServer:
 
         self.replica_ips = {}
         self.customer_name = customer_name
-        self.lst_valid_replica_domains = []
+        VALID_REPLICA_DOMAINS = []
 #
         for each in REPLICA_SERVER_DOMAINS:
             try:
                 self.replica_ips[each] = socket.gethostbyname(each)
-                self.lst_valid_replica_domains.append(each)
+                VALID_REPLICA_DOMAINS.append(each)
             except socket.gaierror:
                 if display == True:
                     print(f"Replica server: {each} UNAVAILABLE")
@@ -90,14 +121,8 @@ class DNSServer:
         try:
             # AF_INET means IPV4, DGRAM means UDP, which does not care about reliability
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-            # TODO DELETE AFTER COMPLETE BUILD THIS ONLY FOR TESTING
             self.dns_ip = self.get_ip_src()
-            # code below should be applioed to clinet not dns
-            # # check that is valid ip address
-            # checkThisIp = self.dns_ip[:7]
-            # if "192.168" in checkThisIp:
-            #     self.dns_ip = self.get_public_ip()
+
         except socket.error as e:
             print(e)
             print("Socket error occured, could not build dns server")
@@ -258,7 +283,7 @@ class DNSServer:
         :return:
         """
         # TODO update
-        self.lst_valid_replica_domains = []
+        VALID_REPLICA_DOMAINS = []
 
         for each in REPLICA_SERVER_DOMAINS:
             self.replica_ips[each] = socket.gethostbyname(each)
@@ -357,8 +382,8 @@ class DNSServer:
                             )
                             print("Selecting random ip from among replica servers ip\n")
 
-                        random_replica_domain = self.lst_valid_replica_domains[
-                            random.randint(0, len(self.lst_valid_replica_domains) - 1)
+                        random_replica_domain = VALID_REPLICA_DOMAINS[
+                            random.randint(0, len(VALID_REPLICA_DOMAINS) - 1)
                         ]
                         closest_replica: tuple[float, str] = (0, random_replica_domain)
 

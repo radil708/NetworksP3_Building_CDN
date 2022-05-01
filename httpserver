@@ -94,8 +94,6 @@ class HttpServer:
             print("HTTP server could not receive client request, exception:", e)
             self.sock.close()
 
-        print("the request from the client", client_request)
-
         # Check if it's a dns request
         if client_request.startswith("PING"): #/PING {ip}
             ## TODO: parse client ip from dns request 
@@ -230,8 +228,11 @@ def main():
         try:
             client_rq, client_socket = httpserver.receive_client_rq()
             if client_rq is None or client_socket is None:
+                #request from the dns
                 continue
-            httpserver.send_html_response(client_rq, client_socket)
+            else:
+                #TODO NEED THIS DO NOT DELETE
+                httpserver.send_html_response(client_rq, client_socket)
         except KeyboardInterrupt:
             httpserver.sock.close()
 
