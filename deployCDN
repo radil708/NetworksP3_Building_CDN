@@ -90,13 +90,13 @@ def deploy_dns(username, keyfile, display=False):
 
 def run_geocaching(keyfile, username, dnsserver):
     run_command = (
-            "ssh -i "
-            + keyfile
-            + " "
-            + username
-            + "@"
-            + dnsserver
-            + " 'python3 pre_dns_run_setup'"
+        "ssh -i "
+        + keyfile
+        + " "
+        + username
+        + "@"
+        + dnsserver
+        + " 'python3 pre_dns_run_setup'"
     )
 
     running = os.system(run_command)
@@ -117,20 +117,20 @@ def deploy_http(username, keyfile, display=False):
         # scp -i ~/.ssh/id_ed25519.pub team_t@p5-http-a.5700.network:.
 
         scp_command = (
-                "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
+            "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
 
         os.system(scp_command)
         ssh_command = (
-                "ssh -i "
-                + keyfile
-                + " "
-                + username
-                + "@"
-                + node
-                + " 'chmod 777 /home/"
-                + username
-                + "/httpserver'"
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + node
+            + " 'chmod 777 /home/"
+            + username
+            + "/httpserver'"
         )
         os.system(ssh_command)
 
@@ -157,7 +157,7 @@ def main():
         "--domain_name",
         metavar="",
         help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
-             "replica IPs",
+        "replica IPs",
     )
     parser.add_argument("-i", "--keyfile", metavar="", help="path to keyfile")
     parser.add_argument(
@@ -171,7 +171,7 @@ def main():
         "--default",
         metavar="",
         help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
-             "statements",
+        "statements",
     )
     parser.add_argument(
         "-s",
@@ -184,7 +184,7 @@ def main():
         "--server_targets",
         metavar="",
         help="optional arg, can be used to apply script to only one server, if 'dns' "
-             "then code only applied to dns related code, if 'http' then code only applied to http code",
+        "then code only applied to dns related code, if 'http' then code only applied to http code",
     )
 
     args = parser.parse_args()
@@ -263,19 +263,16 @@ def main():
 
     if runDNS == True:
         deploy_dns(args.username, args.keyfile, display=True)
-        run_geocaching(
-            keyfile=args.keyfile,
-            username=args.username,
-            dnsserver=DNS_NODE
+        run_geocaching(keyfile=args.keyfile, username=args.username, dnsserver=DNS_NODE)
+        print(
+            "\nDNS DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION\n+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
         )
-        print("\nDNS DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION")
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
     if runHTTP == True:
         deploy_http(args.username, args.username, display=True)
-        print("\nHTTP DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION")
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+        print(
+            "\nHTTP DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION\n+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+        )
 
 
-#
 main()

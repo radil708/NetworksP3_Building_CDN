@@ -7,13 +7,12 @@ import gzip
 import shutil
 from collections import Counter
 
-ORIGIN_PORT = 8080
+DEFAULT_ORIGIN_PORT = 8080
 CACHED_FILES_LIST = "cached_files.txt"
-PORT = 40015
+DEFAULT_PORT = 40015
 ORIGIN = "cs5700cdnorigin.ccs.neu.edu"
-MAX_CACHE_SIZE_BYTES = 1000000 * 19  # 19MB of cache
+MAX_CACHE_SIZE_BYTES = 1000000 * 0.4  # 19MB of cache
 MAX_CACHED_FILES = 1000
-ZIPPED = False
 
 """
 Handles the client request. Either gets the html from source or cache
@@ -33,35 +32,54 @@ time ; wget https://p5-http-a.5700.network:40015/Main_Page
  ps -fA | grep python
 """
 
+# TODO:  get a westcoast wget,
+# clean up httpservers - remove old files
+# confirm space usage - 19MB
+# add display variables
+# fix README
+
 
 class HttpServer:
-    def __init__(self, port, origin) -> None:
+    def __init__(self, port, origin, display=False):
         self.port = port
         self.origin = origin
 
         self.current_folder = os.path.abspath(os.getcwd())
         self.cached_folder = self.current_folder + "/cached_files"
         self.current_size = os.path.getsize(self.current_folder)
-        print("current folder size", self.current_size)
+
         self.server_ip = socket.gethostbyname(socket.gethostname())
-        self.cache = Cache()
+        self.cache = Cache(display)
         self.create_and_connect_socket()
+
         self.client_ip_ping_dict = {}
+
+        self.request_count = 0
+
+        self.display = display
+        if self.display:
+            print(
+                "current folder size",
+                self.current_size,
+                "cache folder size",
+                os.path.getsize(self.cached_folder),
+            )
 
     def create_and_connect_socket(self):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind((self.server_ip, self.port))
-            print("Http Server Connected and listening on port", self.port)
+            print("Http Server connected and listening on port", self.port)
         except Exception as e:
             print("HTTP could not connect: ", e)
             self.sock.close()
             exit(0)
 
-        # print("Socket created. Ready to receive client requests.")
-
     def ping_client(self, dns_socket, client_ip):
+        if self.display:
+            print("Pinging client:", client_ip, "from", self.server_ip)
+
         try:
             # Ping the client 3 times
             ping_response = os.popen(f"ping -c 3 {client_ip}").read()
@@ -76,11 +94,14 @@ class HttpServer:
                 f"Could not successfully ping client: {client_ip} from {socket.gethostname()}"
             )
             dns_socket.send(f"PING_RTT {self.server_ip} {client_ip} 999".encode())
-            
 
     def receive_client_rq(self):
-        #TODO does this need to be changed considering
-        # a tcp client from dns needs to stay connected at all times?
+        # Reset the socket every 500 requests
+        self.request_count += 1
+        if self.request_count == 500:
+            self.create_and_connect_socket()
+            self.request_count = 0
+
         self.sock.listen(1)
 
         # Accept the socket connection from the client
@@ -96,85 +117,88 @@ class HttpServer:
             print("HTTP server could not receive client request, exception:", e)
             self.sock.close()
 
-        # Check if it's a dns request
-        if client_request.startswith("PING"): #/PING {ip}
-            ## TODO: parse client ip from dns request 
+        if self.display:
+            print("Client request:", client_request)
+        if client_request.startswith("GET"):
+            get_request_path = client_request.split("\r\n")[0]
+            client_request_page = get_request_path.split(" ")[1]
+            return client_request_page, client_socket
+        # Check for dns request
+        elif client_request.startswith("PING"):  # /PING {ip}
             ip_to_ping = client_request.split()[1]
             self.ping_client(client_socket, ip_to_ping)
             return None, None
-        else:
-            # b'GET /Main_Page HTTP/1.1\r\nUser-Agent: Wget/1.14 (linux-gnu)\r\nAccept: */*\r\nHost: 50.116.41.109:40015\r\nConnection: Keep-Alive\r\n\r\n'
-            get_request_path = client_request.split("\r\n")[0]
-            client_request_page = get_request_path.split(" ")[1]
-
-            # print("\nCLIENT REQUESTED PAGE:", client_request_page)
-
-        if client_request_page == "/grading/beacon":
+        elif client_request_page == "/grading/beacon":
             return "/grading/beacon", client_socket
-
-        return client_request_page, client_socket
-
-        #####NOT ZIPPED
-
-    def get_html(self, client_request_page):
-        page_path = self.cached_folder + client_request_page
-        # print("Client rq page", client_request_page, "page path", page_path)
-
-        if page_path in self.cache.cached_files:
-            print("Found:", page_path, "is in the cache.")
-            self.cache.cached_files[page_path] += 1
-            return self.cache.get_file(page_path)
         else:
-            print("Could not find:", page_path, "in zipped cache. Querying the origin.")
+            print(
+                "Unidentifiable request received from client ip:",
+                client_ip,
+                "Request:",
+                client_request,
+            )
+            return None, None
 
-            complete_url = "http://" + ORIGIN + ":8080" + client_request_page
-            response = requests.get(complete_url)
-
-            self.cache.add_to_cache(page_path, response.content)
-            return response.content
-
-    ####ZIPPED
     def get_html_from_zipped(self, client_request_page):
-        page_path = self.cached_folder + client_request_page
-        print("Client rq page", client_request_page, "page path", page_path)
+        """
+        Get the html content from zipped cache files.
+        """
+        page_path = self.cached_folder + client_request_page + ".zip"
 
         if page_path in self.cache.cached_files:
-            print("Found:", page_path, "is in the cache.")
+            if self.display:
+                print("Found:", page_path, "is in the cache.")
             self.cache.cached_files[page_path] += 1
             return self.cache.get_zipped_file(page_path)
         else:
-            print("Could not find:", page_path, "in zipped cache. Querying the origin.")
+            if self.display:
+                print(
+                    "Could not find:",
+                    page_path,
+                    "in zipped cache. Querying the origin.",
+                )
 
-            complete_url = "http://" + ORIGIN + ":8080" + client_request_page
+            complete_url = (
+                "http://"
+                + ORIGIN
+                + ":"
+                + str(DEFAULT_ORIGIN_PORT)
+                + "/"
+                + client_request_page
+            )
             response = requests.get(complete_url)
 
             self.cache.add_to_zipped_cache(page_path, response.content)
             return response.content
 
     def send_html_response(self, client_rq, client_socket):
+        """
+        The html to send to the client socket handles the grading. 
+        Any html returned is prepended with a 200 response header.
+        """
         if client_rq == "/grading/beacon":
             response = "HTTP/1.1 204 No Content\r\n".encode("utf-8")
             client_socket.send(response)
         else:
-            if ZIPPED:
-                response_content = self.get_html_from_zipped(client_rq)
-            else:
-                response_content = self.get_html(client_rq)
-            header = f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n"  # Format
+            response_content = self.get_html_from_zipped(client_rq)
+            header = f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n"
             client_socket.send(header.encode("utf-8"))
             client_socket.send(response_content)
 
         client_socket.close()
-        print("Completed sending response to client.")
 
 
 """
 LFU cache 
+The cached files are zipped and stored in a cached_files directory. Files are unzipped and returned to user.
+A dictionary with frequency of calls is maintained in memory.
+When maximum space allowed is used, the least frequeuntly queried file is removed
+from the cache and the new query is added. 
 """
 
-
 class Cache:
-    def __init__(self) -> None:
+    def __init__(self, display=False) -> None:
+        # {webpage1: {QUERY_FREQ: int}, webpage2: }
         self.cached_files = Counter()
 
         self.current_folder = os.path.abspath(os.getcwd())
@@ -185,16 +209,31 @@ class Cache:
         os.makedirs(self.cached_folder)
 
         self.current_size = os.path.getsize(self.current_folder)
-
+        self.display = display
         # print('curr folder', self.current_folder, 'curr folder size', self.current_size)
 
     def remove_least_freq_used(self):
-        LFU_link = self.cached_files.most_common()[-1]
-        # filepath_to_remove = self.cached_folder + "/" + LFU_link
+        """
+        Cache replacement to remove least frequently used url and update data structures.
+        Removes the file from the cache, reduces the size, and removes from list of cached_files.
+        """
+        # Get least used file
+        if self.display:
+            print("All cached files freq\n:", self.cached_files.most_common())
+
+        LFU_link = self.cached_files.most_common().pop()[0]
+        if self.display:
+            print(
+                "Least frequently used file link: ",
+                LFU_link,
+                "file size:",
+                os.path.getsize(LFU_link),
+                "total size:",
+                self.current_size,
+            )
 
         # Decrease size used
-        fsize = os.path.getsize(LFU_link)
-        self.current_size -= fsize
+        self.current_size -= os.path.getsize(LFU_link)
 
         # Remove the filename from the cache dict
         self.cached_files.pop(LFU_link)
@@ -202,79 +241,54 @@ class Cache:
         # Remove the file
         os.remove(LFU_link)
 
-        print("Removed", LFU_link, "from cache dict, size, and folder.")
-
-    """Zipped cache functions"""
+        if self.display:
+            print("New size:", self.current_size, "files remaining:", self.cached_files)
+            print("Removed", LFU_link, "from cache dict, size, and folder.")
 
     def add_to_zipped_cache(self, zip_filepath, response_content):
+        """
+        Cache replacement removes least freq used url and writes new file to the cache.
+        Updates associated data structures and used file size.
+        """
         if self.current_size > MAX_CACHE_SIZE_BYTES:
             self.remove_least_freq_used()
-        # zip_filepath = self.cached_folder + '/' + title + ".zip"
 
-        # Write the contents to the file
+        # Zip and write the contents to the file
         with gzip.open(zip_filepath, "wb") as wfile:
             wfile.write(response_content)
-        fsize = os.path.getsize(zip_filepath)
-        self.current_size += fsize
 
-        # Add to cache dict
+        # Add to cache dict and current size
+        self.current_size += os.path.getsize(zip_filepath)
         self.cached_files[zip_filepath] = 1
 
     def get_zipped_file(self, filepath):
-        # file_to_open = self.cached_folder + "/" + filepath
-
+        # Opens the zipped file, reads and returns the contents
         with gzip.open(filepath, "rb") as f:
-            contents = f.read()
-
-        return contents
-
-    '""Not zipped cache functions""'
-
-    def add_to_cache(self, filepath, response_content):
-        if self.current_size > MAX_CACHE_SIZE_BYTES:
-            self.remove_least_freq_used()
-
-        # Write the contents to the file
-        with open(filepath, "wb") as wfile:
-            wfile.write(response_content)
-        fsize = os.path.getsize(filepath)
-        self.current_size += fsize
-
-        # Add to cache dict
-        self.cached_files[filepath] = 1
-
-    def get_file(self, filepath):
-        # for cache run when that are not zipped
-        with open(filepath, "rb") as f:
             contents = f.read()
 
         return contents
 
 
 def main():
-    port = PORT
+    port = DEFAULT_PORT
     origin = ORIGIN
 
-    
     for i in range(len(sys.argv[1:])):
         if sys.argv[i] == "-p":
             port = int(sys.argv[i + 1])
         elif sys.argv[i] == "-o":
             origin = sys.argv[i + 1]
-    #print("Listening on port", port, "origin is ", origin)
-    
 
-    httpserver = HttpServer(port, origin)
-    # print('HTTP SERVER READY')
+    httpserver = HttpServer(port, origin, display=True)
 
     while True:
         try:
             client_rq, client_socket = httpserver.receive_client_rq()
             if client_rq is None or client_socket is None:
-                #request from the dns
+                # request from the dns
                 continue
             else:
-                #TODO NEED THIS DO NOT DELETE
+                # TODO NEED THIS DO NOT DELETE
                 httpserver.send_html_response(client_rq, client_socket)
         except KeyboardInterrupt:
             httpserver.sock.close()

@@ -8,10 +8,12 @@ High level approach:
         - runs the dnsserver with the port and dns name given
         - runs the httpserver on each replica node
     - stopCDN - stops dnsserver and all httpservers
+    ***Custom flags have been added for testing purposes (-d , -f)
 
 2. httpserver - uses a socket to listen for queries from client and return a html
     - Queries the origin server if the query is not cached (requests.get())
-    - LFU cache will be implemented to store most frequently queried hits
+    - LFU cache is used to remove the least frequently requested query file from the cache
+    - Listens to dns requests to ping the client and return a rtt to the dnsserver
     
 3. dnsserver - sets up geo database and uses a socket to listen to incoming requests
     - listens for DNS queries from clients
