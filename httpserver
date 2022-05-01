@@ -79,6 +79,8 @@ class HttpServer:
             
 
     def receive_client_rq(self):
+        #TODO does this need to be changed considering
+        # a tcp client from dns needs to stay connected at all times?
         self.sock.listen(1)
 
         # Accept the socket connection from the client

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import math
 import os
 import socket
+import time
 from threading import Thread
 
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, RR, A, RCODE
@@ -68,14 +70,23 @@ class ActMeasureThread(Thread):
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
 
+        self.display = display
+        self.target_http_port = hostServerPort
 
         #should sockets be made then closed instead of being open the entire time??
-        print("65 VALID REPLICA LIST ", VALID_REPLICA_DOMAINS)
         for valid_rep_dom in VALID_REPLICA_DOMAINS:
             try:
                 s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 domainIP = socket.gethostbyname(valid_rep_dom)
                 s_.connect((domainIP, hostServerPort))
+
+                # TODO TCP Keep alive pings
+                #s_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+               # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
+                #s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+
+                #s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
+
                 if display == True:
                     print(f"TCP Client Socket created, connected to host:\n"
                           f"domain:{valid_rep_dom}\n"
@@ -84,7 +95,6 @@ class ActMeasureThread(Thread):
                     print("======================\n")
                 CLIENT_SOCKETS.append(s_)
             except Exception as e:
-                ACTIVE_THREAD_CONTINUE_BOOL = False
                 print(e)
                 print("TCP Client unable to connect to host\n"
                       f"domain:{valid_rep_dom}\n"
@@ -92,6 +102,55 @@ class ActMeasureThread(Thread):
                       f"host port: {hostServerPort}\n")
                 print("======================\n")
                 continue
+
+    def set_up_tcp_sockets(self):
+        # should sockets be made then closed instead of being open the entire time??
+        for valid_rep_dom in VALID_REPLICA_DOMAINS:
+            try:
+                s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                domainIP = socket.gethostbyname(valid_rep_dom)
+                s_.connect((domainIP, self.target_http_port))
+
+                # TODO TCP Keep alive pings
+                # s_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
+                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+
+                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
+
+                if self.display == True:
+                    print(f"TCP Client Socket created, connected to host:\n"
+                          f"domain:{valid_rep_dom}\n"
+                          f"host ip: {domainIP}\n"
+                          f"host port: {self.target_http_port}\n")
+                    print("======================\n")
+                CLIENT_SOCKETS.append(s_)
+            except Exception as e:
+                print(e)
+                print("TCP Client unable to connect to host\n"
+                      f"domain:{valid_rep_dom}\n"
+                      f"host ip: {domainIP}\n"
+                      f"host port: {self.target_http_port}\n")
+                print("======================\n")
+                continue
+
+    def close_all_tcp_sockets(self):
+        global CLIENT_SOCKETS
+        global VALID_REPLICA_DOMAINS
+
+        for i in range(len(VALID_REPLICA_DOMAINS)):
+            try:
+                CLIENT_SOCKETS[i].close()
+                if self.display == True:
+                    print(f"Client socket to {VALID_REPLICA_DOMAINS[i]} has been closed")
+            except Exception as e:
+                print("Line 107: ", e)
+                if self.display == True:
+                    print("Unable to close socket")
+
+        if self.display == True:
+            print("Resetting client socket list to empty")
+        CLIENT_SOCKETS = []
 
     #Override run methods
     def run(self):
@@ -101,52 +160,102 @@ class ActMeasureThread(Thread):
         global VALID_REPLICA_DOMAINS
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
+
+        if len(CLIENT_SOCKETS) == 0:
+            if self.display == True:
+                print("Tcp clients could not connect to replica servers")
+                print("Active measurement unavailable")
+                print("Shutting down active measurement thread")
+            return
+
         while ACTIVE_THREAD_CONTINUE_BOOL == True:
+            time.sleep(0.3)
+
+            # Check for any new clients
             if len(CLIENTS_CHECK_RTT) > 0:
                 client_rtt_list = []
                 client_ip = CLIENTS_CHECK_RTT.pop(0)
+
+                self.set_up_tcp_sockets()
+
+                # if new client present then send a ping request to every valid replica server
                 for each_socket in CLIENT_SOCKETS:
                     try:
                         PING_QUERY = "PING " + client_ip
                         each_socket.send(PING_QUERY.encode())
                         data = each_socket.recv(1024).decode()
+                        #structure of data/response from http servers
+                        # data = PING_RTT replica_ip client_ip RTT_from_replica_to_client
+                        #example: PING_RTT 45.33.50.187 15.223.19.203 65.299
                         data_lst = data.split(" ")
-                        # data_lst = PING_RTT 45.33.50.187 15.223.19.203 65.299
-                        #tuple is (rtt, client ip, replica ip)
+
+                        #tuple appended to client_rtt_list is (rtt as float, client ip, replica ip)
                         client_rtt_list.append((float(data_lst[3]), data_lst[2],data_lst[1]))
-                        #TODO DELETE
-                        print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
-                        print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
+
+                        if self.display == True:
+                            print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
+                            print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
+
+                    except KeyboardInterrupt:
+                        print("\nKeyboardInterrupt Occurred During tcp thread")
+                        ACTIVE_THREAD_CONTINUE_BOOL=False
+                        print("Attempting to close thread loop")
+
                     except Exception as e:
-                        ACTIVE_THREAD_CONTINUE_BOOL = False
-                        print(e," line 103")
+                        print("line 145: ", e )
+                        print("Unable to get ping information from replica to client")
                         continue
-            # sort by RTT which is the first element of a tuple
+
+                if self.display == True:
+                    print("============================\n")
+
                 try:
-                    client_rtt_list.sort(key=lambda x: x[0])
-                    shortest_rtt_tuple = client_rtt_list.pop(0)
-                    print(f"Fastest rtt {shortest_rtt_tuple[0]} to client {shortest_rtt_tuple[1]} "
-                          f"from replica {shortest_rtt_tuple[2]}")
+                    # if there are no elemets in the list go back to start
+                    if len(client_rtt_list) == 0:
+                        if self.display == True:
+                            print("No RRT responses received from any replica server\n")
+                        continue
+
+                    else:
+                        client_rtt_list.sort(key=lambda x: x[0])
+                        shortest_rtt_tuple = client_rtt_list.pop(0)
+
+                        # if the item popped has 999 for a return time, then ping failed
+                        # keep current client: replica mapping
+                        #TODO consider reappending to list? Maybe first pings failed but
+                        # may succeed in the future??
+                        if math.isclose(shortest_rtt_tuple[0], 999, abs_tol=2.0):
+                            if self.display == True:
+                                print("Replica's unable to get ping response from client")
+                                print("Defaulting to Geocaching strategy")
+                            continue
+                        else:
+                            # there is a fast one
+                            if self.display == True:
+                                print(f"Fastest rtt {shortest_rtt_tuple[0]} to client {shortest_rtt_tuple[1]} "
+                                    f"from replica {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
+                                print(
+                                    f"Current replica for client:{shortest_rtt_tuple[1]} is {CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]}")
+                                print(f"Setting to {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
+
+                            CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[
+                                shortest_rtt_tuple[2]]
+                    client_rtt_list = []
+
+
+                except KeyboardInterrupt:
+                    print("\nKeyboardInterrupt Occurred During tcp thread")
+                    ACTIVE_THREAD_CONTINUE_BOOL = False
+                    print("Attempting to close thread loop")
+
                 except Exception as e:
-                    print(e," 114")
+                    print("Line 187: ", e)
                     print("No responses from http pings")
-                try:
-                    print(f"Current replica for client:{shortest_rtt_tuple[1]} is {CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]}")
-                    #TODO below are the correct uncomment after checking changes stick
-                    print(f"Setting to IP_TO_VALID_REP_DOMAIN_DICT[{shortest_rtt_tuple[2]}]")
-                    CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]
-                except Exception as e:
-                    print(e, " line 120")
-                    continue
-
-
             else:
                 continue
 
-        self.join()
-
-
-
+        self.close_all_tcp_sockets()
+        return
 
 
 class DNSServer:
@@ -260,10 +369,9 @@ class DNSServer:
             )
             print(PLUS_DIVIDER)
 
-        #TODO DELETE
-        print("235 VALID REPLICA LIST ", VALID_REPLICA_DOMAINS)
         ACTIVE_THREAD_CONTINUE_BOOL = True
         ACTIVE_MEASUREMENT_THREAD = ActMeasureThread(dns_port,display)
+        ACTIVE_MEASUREMENT_THREAD.daemon = True # thread will die when main thread exits
         ACTIVE_MEASUREMENT_THREAD.start()
 
     def close_server(self, display_close_msg: bool = False):
