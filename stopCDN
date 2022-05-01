@@ -91,7 +91,7 @@ def main():
         "--domain_name",
         metavar="",
         help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
-        "replica IPs",
+             "replica IPs",
     )
     parser.add_argument("-i", "--keyfile", metavar="", help="path to keyfile")
     parser.add_argument(
@@ -104,8 +104,9 @@ def main():
         "-d",
         "--default",
         metavar="",
-        help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
-        "statements",
+        help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, "
+             "s for sinhaut "
+             "statements",
     )
     parser.add_argument(
         "-s",
@@ -113,7 +114,17 @@ def main():
         metavar="",
         help="optional arg, if not None displays print statements",
     )
+    parser.add_argument(
+        "-f",
+        "--server_targets",
+        metavar="",
+        help="optional arg, can be used to apply script to only one server, if 'dns' "
+             "then code only applied to dns related code, if 'http' then code only applied to http code",
+    )
+
     args = parser.parse_args()
+
+    required_filled = False
 
     if args.default != None:
         argUser = args.default.lower()
@@ -122,52 +133,76 @@ def main():
         elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
-            print(args.default," in invalid value, please use 'r' or 's' as args")
-            print("EXITING PROGRAM")
+            print(f"{args.default} in invalid value, please use 'r' or 's' as args")
+            print("EXITING STOP SCRIPT")
             exit(0)
 
+        # set defaults if using default optional arg
         args.port = DEFAULT_PORT
-
         args.origin = ORIGIN_SERVER
         args.username = DEFAULT_USERNAME
-        args.display = 1
         args.domain_name = DEFAULT_DOMAIN
+        required_filled = True
     # --------------------------------------------------------------------------------
     else:
-        if (
-            args.port == None
-            or args.origin == None
-            or args.domain_name == None
-            or args.keyfile == None
-            or args.username == None
-        ):
-            print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
-            print("EXITING DEPLOY SCRIPT")
-            exit(0)
+        if args.port is None:
+            print("Missing port argument -p")
+        elif args.origin is None:
+            print("Missing origin argument -o")
+        elif args.domain_name is None:
+            print("Missing domain name dns must resolve for argument -n")
+        elif args.keyfile is None:
+            print("Missing keyfile -i")
+        elif args.username is None:
+            print("Missing username -u -i")
+        else:
+            required_filled = True
 
-    print(
-        "USER ENTERED VALUES FOR STOP SCRIPT:",
-        "\nPort:",
-        args.port,
-        "\nOrigin:",
-        args.origin,
-        "\nDomain:",
-        args.domain_name,
-        "\nKeyfile:",
-        args.keyfile,
-        "\nUsername:",
-        args.username,
-    )
-    print("------------------------------\n")
-    
+    if required_filled == False:
+        print("EXITING STOP SCRIPT")
+        exit(0)
+
     if args.display != None:
         args.display = True
     else:
         args.display = False
 
-    stop_dns(args.username, args.keyfile)
-    print("KILLED dnsserver")
-    stop_http(args.username, args.keyfile)
+    runDNS = True
+    runHTTP = True
+
+    if args.server_targets is not None:
+        if args.server_targets.lower() == "dns":
+            runHTTP = False
+        elif args.server_targets.lower() == "http":
+            runDNS = False
+        else:
+            runHTTP = False
+            runDNS = False
+            print("if using server_target arg (-f) can only be 'dns' or 'http'")
+            print("stop script will NOT be applied to dns or http server")
+            print("STOP SCRIPT FAILED")
+            print("EXITING PROGRAM")
+            exit(0)
+
+    print(
+        f"USER ENTERED VALUES FOR STOP SCRIPT:"
+        f"\nPort:{args.port}"
+        f"\nOrigin: {args.origin}"
+        f"\nDomain: {args.domain_name}"
+        f"\nKeyfile: {args.keyfile}"
+        f"\nUsername: {args.username}"
+        f"\nExecute stop Script for DNS server?: {runDNS}"
+        f"\nExecute stop Script for HTTP server?: {runHTTP}"
+    )
+    print("------------------------------\n")
+
+    if runDNS == True:
+        stop_dns(args.username, args.keyfile)
+        print("DNS stop script has run to completion\n")
+    if runHTTP == True:
+        stop_http(args.username, args.keyfile)
+        print("HTTP stop script has run to completion")
+
 
 
 main()

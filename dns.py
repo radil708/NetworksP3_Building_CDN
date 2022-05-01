@@ -103,12 +103,13 @@ class ActMeasureThread(Thread):
                     print(EQUALS_DIVIDER)
                 self.client_sockets.append(s_)
             except Exception as e:
-                print(e)
-                print("TCP Client unable to connect to host\n"
-                      f"domain:{valid_rep_dom}\n"
-                      f"host ip: {domainIP}\n"
-                      f"host port: {self.target_http_port}\n")
-                print(EQUALS_DIVIDER)
+                if self.display == True:
+                    print(e)
+                    print("TCP Client unable to connect to host\n"
+                          f"domain:{valid_rep_dom}\n"
+                          f"host ip: {domainIP}\n"
+                          f"host port: {self.target_http_port}\n")
+                    print(EQUALS_DIVIDER)
                 continue
 
     def close_all_tcp_sockets(self):
@@ -278,7 +279,7 @@ class DNSServer:
         dns_port: int,
         customer_name: str,
         display: bool = False,
-        display_geo_load: bool = False,
+        display_geo_load: bool = False
     ) -> None:
         '''
         The constructor for the DNSServer class. It sets up the dnsserver and creates a geo_db object which is used

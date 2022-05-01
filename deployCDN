@@ -88,20 +88,25 @@ def deploy_dns(username, keyfile, display=False):
         print("SKIPPING DNS DEPLOY, PROGRAM WILL CONTINUE\n")
 
 
-def run_geocaching(keyfile, username, dnsserver, display=False):
+def run_geocaching(keyfile, username, dnsserver):
     run_command = (
-        "ssh -i "
-        + keyfile
-        + " "
-        + username
-        + "@"
-        + dnsserver
-        + " 'python3 pre_dns_run_setup'"
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + dnsserver
+            + " 'python3 pre_dns_run_setup'"
     )
 
     running = os.system(run_command)
-    if display == True:
-        print("Finished loading geolocation zipfile and csv. Running code:", running)
+
+    if running == 0:
+        print("geofile set up complete")
+    else:
+        print(f"Command returned {running}")
+        print("failed to set up geofiles")
+        print("Continuing Program\n")
 
 
 def deploy_http(username, keyfile, display=False):
@@ -112,20 +117,20 @@ def deploy_http(username, keyfile, display=False):
         # scp -i ~/.ssh/id_ed25519.pub team_t@p5-http-a.5700.network:.
 
         scp_command = (
-            "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
+                "scp -i " + keyfile + " httpserver " + username + "@" + node + ":."
         )
 
         os.system(scp_command)
         ssh_command = (
-            "ssh -i "
-            + keyfile
-            + " "
-            + username
-            + "@"
-            + node
-            + " 'chmod 777 /home/"
-            + username
-            + "/httpserver'"
+                "ssh -i "
+                + keyfile
+                + " "
+                + username
+                + "@"
+                + node
+                + " 'chmod 777 /home/"
+                + username
+                + "/httpserver'"
         )
         os.system(ssh_command)
 
@@ -152,7 +157,7 @@ def main():
         "--domain_name",
         metavar="",
         help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
-        "replica IPs",
+             "replica IPs",
     )
     parser.add_argument("-i", "--keyfile", metavar="", help="path to keyfile")
     parser.add_argument(
@@ -166,7 +171,7 @@ def main():
         "--default",
         metavar="",
         help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
-        "statements",
+             "statements",
     )
     parser.add_argument(
         "-s",
@@ -174,45 +179,74 @@ def main():
         metavar="",
         help="optional arg, if not None displays print statements",
     )
+    parser.add_argument(
+        "-f",
+        "--server_targets",
+        metavar="",
+        help="optional arg, can be used to apply script to only one server, if 'dns' "
+             "then code only applied to dns related code, if 'http' then code only applied to http code",
+    )
+
     args = parser.parse_args()
-    runDNS = True
-    runHTTP = True
+
+    required_filled = False
+
     if args.default != None:
         argUser = args.default.lower()
-        args_lst = argUser.split("_")
-        if args_lst[0] == "r":
+        if argUser == "r":
             args.keyfile = DEFAULT_R_KEY
-        elif args_lst[0] == "s":
+        elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
             print(f"{args.default} in invalid value, please use 'r' or 's' as args")
             print("EXITING DEPLOY SCRIPT")
             exit(0)
 
-        if "dns" in args_lst and "http" not in args_lst:
-            runHTTP=False
-        elif "http" in args_lst and "dns" not in args_lst:
-            runDNS=False
-
-
-
+        # set defaults if using default optional arg
         args.port = DEFAULT_PORT
-
         args.origin = ORIGIN_SERVER
         args.username = DEFAULT_USERNAME
-        args.display = 1
         args.domain_name = DEFAULT_DOMAIN
+        required_filled = True
     # --------------------------------------------------------------------------------
     else:
-        if (
-            args.port == None
-            or args.origin == None
-            or args.domain_name == None
-            or args.keyfile == None
-            or args.username == None
-        ):
-            print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
-            print("EXITING DEPLOY SCRIPT")
+        if args.port is None:
+            print("Missing port argument -p")
+        elif args.origin is None:
+            print("Missing origin argument -o")
+        elif args.domain_name is None:
+            print("Missing domain name dns must resolve for argument -n")
+        elif args.keyfile is None:
+            print("Missing keyfile -i")
+        elif args.username is None:
+            print("Missing username -u -i")
+        else:
+            required_filled = True
+
+    if required_filled == False:
+        print("EXITING DEPLOY SCRIPT")
+        exit(0)
+
+    if args.display != None:
+        args.display = True
+    else:
+        args.display = False
+
+    runDNS = True
+    runHTTP = True
+
+    if args.server_targets is not None:
+        if args.server_targets.lower() == "dns":
+            runHTTP = False
+        elif args.server_targets.lower() == "http":
+            runDNS = False
+        else:
+            runHTTP = False
+            runDNS = False
+            print("if using server_target arg (-f) can only be 'dns' or 'http'")
+            print("deploy script will NOT be applied to dns or http server")
+            print("DEPLOY SCRIPT FAILED")
+            print("EXITING PROGRAM")
             exit(0)
 
     print(
@@ -222,26 +256,25 @@ def main():
         f"\nDomain: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"
         f"\nUsername: {args.username}"
+        f"\nExecute Deploy Script for DNS server?: {runDNS}"
+        f"\nExecute Deploy Script for HTTP server?: {runHTTP}"
     )
     print("------------------------------\n")
 
-    if args.display != None:
-        args.display = True
-    else:
-        args.display = False
-
-    #TODO add default running for non-default args
     if runDNS == True:
-        deploy_dns(args.username, args.keyfile, display=args.display)
+        deploy_dns(args.username, args.keyfile, display=True)
         run_geocaching(
             keyfile=args.keyfile,
             username=args.username,
-            dnsserver=DNS_NODE,
-            display=args.display,
+            dnsserver=DNS_NODE
         )
+        print("\nDNS DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION")
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
     if runHTTP == True:
-        deploy_http(args.username, args.username, display=args.display)
+        deploy_http(args.username, args.username, display=True)
+        print("\nHTTP DEPLOYMENT SCRIPT HAS BEEN RUN TO COMPLETION")
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 
 
 #

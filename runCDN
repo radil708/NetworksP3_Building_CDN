@@ -27,32 +27,57 @@ ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 # ./runCDN -p 40015 -o cs5700cdnorigin.ccs.neu.edu -n team_t -u team_t -i ~/.ssh/id_ed25519.pub
 
 
-def run_dns(port, username, keyfile, domain_name, display = False):
-    # Run dnsserver.py on dns node
-    run_command = (
-        "ssh -i "
-        + keyfile
-        + " "
-        + username
-        + "@"
-        + DNS_NODE
-        + " nohup ./dnsserver -p "
-        + str(port)
-        + " -n "
-        + domain_name
-        + " &"
-    )
+def run_dns(port, username, keyfile, domain_name, dns_display):
+    # Run dnsserver on dns node
+
+    if dns_display == False:
+        run_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + DNS_NODE
+            + " nohup ./dnsserver -p "
+            + str(port)
+            + " -n "
+            + domain_name
+            + " &"
+        )
+    else:
+        run_command = (
+                "ssh -i "
+                + keyfile
+                + " "
+                + username
+                + "@"
+                + DNS_NODE
+                + " nohup ./dnsserver -p "
+                + str(port)
+                + " -n "
+                + domain_name
+                + " -s 1" # display var
+                + " &"
+        )
+
     value = os.system(run_command)
 
-    if display == True:
-        print("Running dns command:", value)
+    if value == 0:
+        print("\nDNS RUN COMMAND SUCCESSFULLY SENT\n")
+        print("Please wait a few seconds before sending requests")
+        print("++++++++++++++++++++++++++++++++++++\n")
+    else:
+        print(f"DNS RUN RETURNED {value}")
+        print("DNS RUN FAILED")
+        print("CONTINUING PROGRAM")
+    print("++++++++++++++++++++++++++++++++++++\n")
 
 
-def thread_runs(port, username, origin, keyfile, display=False):
+def thread_runs(port, username, origin, keyfile):
     threads = []
     for node in HTTP_NODES:
         t = threading.Thread(
-            target=run_http, args=(node, port, username, origin, keyfile,display)
+            target=run_http, args=(node, port, username, origin, keyfile)
         )
         t.setDaemon(True)
         threads.append(t)
@@ -64,7 +89,7 @@ def thread_runs(port, username, origin, keyfile, display=False):
         t.join()
 
 
-def run_http(node, port, username, origin, keyfile,display=False):
+def run_http(node, port, username, origin, keyfile):
     # ssh -i ~/.ssh/id_ed25519.pub team_t@p5-http-d.5700.network './httpserver -p 40015 -o origin'
     # Run httpserver on each replica server
     # for node in HTTP_NODES:
@@ -83,8 +108,8 @@ def run_http(node, port, username, origin, keyfile,display=False):
     )
 
     running = os.system(run_command)
-    if display == True:
-        print("Running httpserver on", node, "command returns:", running)
+
+    print("Running httpserver on", node, "command returns:", running)
     # subprocess.run(args=run_command, shell=True, check=True)
 
 
@@ -106,7 +131,7 @@ def main():
         "--domain_name",
         metavar="",
         help='domain name for your "customer", i.e. the only domain name your DNS server should resolve to '
-        "replica IPs",
+             "replica IPs",
     )
     parser.add_argument("-i", "--keyfile", metavar="", help="path to keyfile")
     parser.add_argument(
@@ -119,8 +144,9 @@ def main():
         "-d",
         "--default",
         metavar="",
-        help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, s for sinhaut "
-        "statements",
+        help="optional, exclusive arg, if not None default values will be used depending on arg; r for radil, "
+             "s for sinhaut "
+             "statements",
     )
     parser.add_argument(
         "-s",
@@ -128,70 +154,94 @@ def main():
         metavar="",
         help="optional arg, if not None displays print statements",
     )
+    parser.add_argument(
+        "-f",
+        "--server_targets",
+        metavar="",
+        help="optional arg, can be used to apply script to only one server, if 'dns' "
+             "then code only applied to dns related code, if 'http' then code only applied to http code",
+    )
+
     args = parser.parse_args()
-    runDNS = True
-    runHTTP= True
+
+    required_filled = False
+
     if args.default != None:
         argUser = args.default.lower()
-        args_lst = argUser.split("_")
-        if args_lst[0] == "r":
+        if argUser == "r":
             args.keyfile = DEFAULT_R_KEY
-        elif args_lst[0] == "s":
+        elif argUser == "s":
             args.keyfile = DEFAULT_S_KEY
         else:
             print(f"{args.default} in invalid value, please use 'r' or 's' as args")
-            print("EXITING DEPLOY SCRIPT")
-            exit(0)
-
-        if "dns" in args_lst and "http" not in args_lst:
-            runHTTP=False
-        elif "http" in args_lst and "dns" not in args_lst:
-            runDNS=False
-
-#
-        args.port = DEFAULT_PORT
-
-        args.origin = ORIGIN_SERVER
-        args.username = DEFAULT_USERNAME
-        args.display = 1
-        args.domain_name = DEFAULT_DOMAIN
-    # --------------------------------------------------------------------------------
-    else:
-        if (
-            args.port == None
-            or args.origin == None
-            or args.domain_name == None
-            or args.keyfile == None
-            or args.username == None
-        ):
-            print("MISSING AN ARGUMENT -p, -o, -n, -i, or -u")
             print("EXITING RUN SCRIPT")
             exit(0)
 
-    print(
-        "USER ENTERED VALUES FOR RUN SCRIPT:",
-        "\nPort:",
-        args.port,
-        "\nOrigin:",
-        args.origin,
-        "\nDomain:",
-        args.domain_name,
-        "\nKeyfile:",
-        args.keyfile,
-        "\nUsername:",
-        args.username,
-    )
-    print("------------------------------\n")
+        # set defaults if using default optional arg
+        args.port = DEFAULT_PORT
+        args.origin = ORIGIN_SERVER
+        args.username = DEFAULT_USERNAME
+        args.domain_name = DEFAULT_DOMAIN
+        required_filled = True
+    # --------------------------------------------------------------------------------
+    else:
+        if args.port is None:
+            print("Missing port argument -p")
+        elif args.origin is None:
+            print("Missing origin argument -o")
+        elif args.domain_name is None:
+            print("Missing domain name dns must resolve for argument -n")
+        elif args.keyfile is None:
+            print("Missing keyfile -i")
+        elif args.username is None:
+            print("Missing username -u -i")
+        else:
+            required_filled = True
+
+    if required_filled == False:
+        print("EXITING RUN SCRIPT")
+        exit(0)
 
     if args.display != None:
         args.display = True
     else:
         args.display = False
 
+    runDNS = True
+    runHTTP = True
+
+    if args.server_targets is not None:
+        if args.server_targets.lower() == "dns":
+            runHTTP = False
+        elif args.server_targets.lower() == "http":
+            runDNS = False
+        else:
+            runHTTP = False
+            runDNS = False
+            print("if using server_target arg (-f) can only be 'dns' or 'http'")
+            print("run script will NOT be applied to dns or http server")
+            print("run SCRIPT FAILED")
+            print("EXITING PROGRAM")
+            exit(0)
+
+    print(
+        f"USER ENTERED VALUES FOR RUN SCRIPT:"
+        f"\nPort:{args.port}"
+        f"\nOrigin: {args.origin}"
+        f"\nDomain: {args.domain_name}"
+        f"\nKeyfile: {args.keyfile}"
+        f"\nUsername: {args.username}"
+        f"\nShould Server(s) Print Statements to Terminal?: {args.display}"
+        f"\nExecute Run Script for DNS server?: {runDNS}"
+        f"\nExecute Run Script for HTTP server?: {runHTTP}"
+    )
+    print("------------------------------\n")
+
     if runHTTP == True:
-        thread_runs(args.port, args.username, args.origin, args.keyfile, args.display)
+        thread_runs(args.port, args.username, args.origin, args.keyfile)
     if runDNS == True:
-        run_dns(args.port, args.username, args.keyfile, args.domain_name, args.display)
+        run_dns(args.port, args.username, args.keyfile, args.domain_name, dns_display=args.display)
+
 
     # run_http(port, username, origin_server, keyfile)
 

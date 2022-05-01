@@ -23,6 +23,9 @@ def main():
         metavar="",
         help='domain name for your "customer", i.e. the only name your DNS server should resolve to replica IPs',
     )
+
+    #-----------------------------------------------------------------------------------------------------
+    #optional args
     parser.add_argument(
         "-d",
         "--default",
@@ -46,7 +49,7 @@ def main():
         # running in default mode will show print statements
         args.port = DEFAULT_PORT
         args.name = DEFAULT_NAME
-        display_prints = True
+
     else:
         if args.port == None:
             print("ERROR: Missing port (-p) argument!")
@@ -63,7 +66,7 @@ def main():
         dns_port=args.port,
         customer_name=args.name,
         display=display_prints,
-        display_geo_load=display_prints,
+        display_geo_load=display_prints
     )
     dns_instance.listen_for_clients(display_prints)
     dns_instance.close_server()
