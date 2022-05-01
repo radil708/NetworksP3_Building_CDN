@@ -14,13 +14,17 @@ from math import radians, cos, sin, atan2, sqrt
 import random
 from urllib.parse import urlparse
 
-# Contains all clients that connected to dns server
+# This will contain a mapping of client ip: replica ip where replica ip is the fastest server for the client
+# This needs to be global so it can be accessed by both the main dns thread and by the active measurement thread
 global CLIENTS_CONNECTED_RECORD
 CLIENTS_CONNECTED_RECORD = {}
 
+# This will be a list of client ips. The active measurement thread will pop off values one by one
+# to determine the replica with the fastest RTT to the client ip
 global CLIENTS_CHECK_RTT
 CLIENTS_CHECK_RTT = []
 
+#
 global CLIENT_SOCKETS
 CLIENT_SOCKETS = []
 
@@ -37,8 +41,9 @@ IP_TO_VALID_REP_DOMAIN_DICT = {}
 
 
 PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
+MINUS_DIVIDER = "----------------------------------------------\n"
+EQUALS_DIVIDER = "==============================================\n"
 
-PORT = 40015  # our assigned port
 REPLICA_SERVER_DOMAINS = [
     "p5-http-a.5700.network",
     "p5-http-b.5700.network",
@@ -49,16 +54,15 @@ REPLICA_SERVER_DOMAINS = [
     "p5-http-g.5700.network",
 ]
 
-"""
-idea instead of geocache we could send a ping from DNS and spoof the ICMP packet's
-recieving ip address to be the ip address of every replica server
-Then just have the replica server constantly listening for ICMP packets
-and if the ICMP packet is received by it then send the time received to DNS
-Keep in mind, time zone diff and time ICMP was sent, also maybe send 4 ICMP packets
-and get the avg RTT of each one???
-"""
 
 class ActMeasureThread(Thread):
+    '''
+    This class will run simultaneously with the dns thread. It will request all available the replica/http servers to run a ping
+    check to the client. It will receive all the RTT's from the http servers and determine the http server with the
+    fastest RTT to a client. It will then modify the mapping of client ip : replica ip that is used by the dns
+    server to keep track of where to send the clients to.
+    It is called only once in the dns __init__/constructor method.
+    '''
 
 
     def __init__(self,hostServerPort, display=False):
@@ -71,29 +75,24 @@ class ActMeasureThread(Thread):
         self.display = display
         self.target_http_port = hostServerPort
 
+        if display == True:
+            print("Active measurement thread initialized\n")
+
     def set_up_tcp_sockets(self):
         global CLIENT_SOCKETS
         global VALID_REPLICA_DOMAINS
-        # should sockets be made then closed instead of being open the entire time??
+
         for valid_rep_dom in VALID_REPLICA_DOMAINS:
             try:
                 s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 domainIP = socket.gethostbyname(valid_rep_dom)
                 s_.connect((domainIP, self.target_http_port))
-
-                # TODO TCP Keep alive pings
-                # s_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
-                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
-
-                # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
-
                 if self.display == True:
                     print(f"TCP Client Socket created, connected to host:\n"
                           f"domain:{valid_rep_dom}\n"
                           f"host ip: {domainIP}\n"
                           f"host port: {self.target_http_port}\n")
-                    print("======================\n")
+                    print(EQUALS_DIVIDER)
                 CLIENT_SOCKETS.append(s_)
             except Exception as e:
                 print(e)
@@ -101,42 +100,47 @@ class ActMeasureThread(Thread):
                       f"domain:{valid_rep_dom}\n"
                       f"host ip: {domainIP}\n"
                       f"host port: {self.target_http_port}\n")
-                print("======================\n")
+                print(EQUALS_DIVIDER)
                 continue
 
     def close_all_tcp_sockets(self):
         global CLIENT_SOCKETS
         global VALID_REPLICA_DOMAINS
 
-        for i in range(len(VALID_REPLICA_DOMAINS)):
-            try:
-                CLIENT_SOCKETS[i].close()
-                if self.display == True:
-                    print(f"Client socket to {VALID_REPLICA_DOMAINS[i]} has been closed")
-            except Exception as e:
-                print("Line 107: ", e)
-                if self.display == True:
-                    print("Unable to close socket")
+        if len(CLIENT_SOCKETS) > 0:
+            for i in range(len(VALID_REPLICA_DOMAINS)):
+                try:
+                    CLIENT_SOCKETS[i].close()
+                    if self.display == True:
+                        print(f"Client socket to {VALID_REPLICA_DOMAINS[i]} has been closed")
+                except Exception as e:
+                    print("Line 107: ", e)
+                    if self.display == True:
+                        print("Unable to close socket")
+            if self.display == True:
+                print("Resetting client socket list to empty")
+            CLIENT_SOCKETS = []
 
-        if self.display == True:
-            print("Resetting client socket list to empty")
-        CLIENT_SOCKETS = []
+        else:
+            if self.display == True:
+                print("There are not tcp sockets to close")
 
-    #Override run methods
+
+
+    #Override run method of threading.Thread super class
     def run(self):
+        '''
+        This method will get called at the very end of the DNSServer constructor. It starts this thread.
+        Its purpose is to use tcp clients to connect with the http servers, get RTT information from them
+        and inform the DNSServer which HTTP server has the fastest RTT to the client via the
+        CLIENT_CONNECTED_RECORD variable
+        :return: None
+        '''
         global CLIENTS_CONNECTED_RECORD
         global CLIENTS_CHECK_RTT
         global CLIENT_SOCKETS
-        global VALID_REPLICA_DOMAINS
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
-
-        # if len(CLIENT_SOCKETS) == 0:
-        #     if self.display == True:
-        #         print("Tcp clients could not connect to replica servers")
-        #         print("Active measurement unavailable")
-        #         print("Shutting down active measurement thread")
-        #     return
 
         while ACTIVE_THREAD_CONTINUE_BOOL == True:
             time.sleep(0.3)
@@ -155,7 +159,7 @@ class ActMeasureThread(Thread):
                         each_socket.send(PING_QUERY.encode())
                         data = each_socket.recv(1024).decode()
                         # close socket after receiving
-                        each_socket.close()
+
                         #structure of data/response from http servers
                         # data = PING_RTT replica_ip client_ip RTT_from_replica_to_client
                         #example: PING_RTT 45.33.50.187 15.223.19.203 65.299
@@ -168,7 +172,7 @@ class ActMeasureThread(Thread):
                             print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
                             print("data received, closing temporary tcp client")
                             print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
-                            print("---------------------------\n")
+                            print(MINUS_DIVIDER)
 
                         each_socket.close()
 
@@ -183,8 +187,11 @@ class ActMeasureThread(Thread):
                             print("Unable to get ping information from replica to client")
                         continue
 
+                # all tcp client sockets have been closed so we should clear the socket list
+                CLIENT_SOCKETS = []
+
                 if self.display == True:
-                    print("============================\n")
+                    print(EQUALS_DIVIDER)
 
                 try:
                     # if there are no elemets in the list go back to start
@@ -204,7 +211,7 @@ class ActMeasureThread(Thread):
                         if math.isclose(shortest_rtt_tuple[0], 999, abs_tol=2.0):
                             if self.display == True:
                                 print("Replica's unable to get ping response from client")
-                                print("Defaulting to Geocaching strategy")
+                                print("Maintaining current Client: Replica server mapping")
                             continue
                         else:
                             # there is a fast one
@@ -220,10 +227,14 @@ class ActMeasureThread(Thread):
                                 continue
                             else:
                                 if self.display == True:
+
                                     print(f"Setting to {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
 
                                 CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]
 
+
+                    if self.display == True:
+                        print(PLUS_DIVIDER)
 
 
                 except KeyboardInterrupt:
@@ -232,23 +243,29 @@ class ActMeasureThread(Thread):
                     print("Attempting to close thread loop")
 
                 except Exception as e:
-                    print("Line 187: ", e)
-                    print("No responses from http pings")
+                    if self.display == True:
+                        print("Line 187: ", e)
+                        print("No responses from http pings")
             else:
                 continue
 
+        #Exited out of loop so close all sockets
         self.close_all_tcp_sockets()
         return
 
 
 class DNSServer:
-    global CLIENTS_CONNECTED_RECORD
-    global CLIENTS_CHECK_RTT
-    global CLIENT_SOCKETS
-    global ACTIVE_MEASUREMENT_THREAD
-    global VALID_REPLICA_DOMAINS
-    global ACTIVE_THREAD_CONTINUE_BOOL
-    global IP_TO_VALID_REP_DOMAIN_DICT
+    '''
+    This class represents the dns server. It's responsibilities:
+    1.) Listen for clients send dns queries
+    2.) Maintain a record of the http server that will respond the fastest to a client via the CLIENTS_CONNECTED_RECORD
+    3.) Send dns responses to the client
+
+    How to use:
+    dns_instance = DNSServer(dns_port_value, customer_name_value, display_value, display_geo_load)
+    dns_instance.listen_for_clients()
+
+    '''
 
     def __init__(
         self,
@@ -257,10 +274,20 @@ class DNSServer:
         display: bool = False,
         display_geo_load: bool = False,
     ) -> None:
+        '''
+        The constructor for the DNSServer class. It sets up the dnsserver and creates a geo_db object which is used
+            for geolocation and sets up the ActMeasureThread object which is used for active measurement between
+            client and replica servers.
+        :param dns_port: (int) port the server should bind to
+        :param customer_name: (string) the domain the dns should resolve for.
+                i.e. like google.com or northeastern.edu...
+        :param display: (bool) if true, this will print status/debug statements to the terminal
+        :param display_geo_load: (bool) if true, this will print status/debug statements regarding the geodb
+                object to the terminal
+        '''
 
         global CLIENTS_CONNECTED_RECORD
         global CLIENTS_CHECK_RTT
-        global CLIENT_SOCKETS
         global ACTIVE_MEASUREMENT_THREAD
         global VALID_REPLICA_DOMAINS
         global ACTIVE_THREAD_CONTINUE_BOOL
@@ -347,7 +374,7 @@ class DNSServer:
 
         if display == True:
             print(
-                f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {PORT}\n"
+                f"DNS Server Successfully Initialized\nServer ip: {self.dns_ip}\nServer Port: {dns_port}\n"
                 f"Resolver set up for domain: {self.customer_name}"
             )
             print(PLUS_DIVIDER)
@@ -359,30 +386,34 @@ class DNSServer:
 
     def close_server(self, display_close_msg: bool = False):
         """
-        Closes the dns server properly
+        Closes the dns socket, any tcp sockets, and then exits the program
         :param display_close_msg: (bool) if true, statements will be printed to the console
         :return: None
         """
         try:
             self.sock.close()
-            if display_close_msg == True:
-                print("Closing dns server socket")
-                print("EXITING PROGRAM")
-            exit(0)
         except KeyboardInterrupt:
             self.sock.close()
-            print("\nKeyboard Interrupt Occured")
-            print("EXITING PROGRAM")
-            exit(0)
+        except Exception as e:
+            if display_close_msg == True:
+                print(e)
+                print("DNS server socket has been closed")
 
-    # TODO this method is deprecated, DELETE before final submission
-    def get_public_ip(self) -> str:
-        """
-        Gets public ip instead of local ip address
-        :return: (string) ip as string
-        """
-        ip = requests.get("https://api.ipify.org").content.decode("utf8")
-        return ip
+        try:
+            ACTIVE_MEASUREMENT_THREAD.close_all_tcp_sockets()
+        except KeyboardInterrupt:
+            ACTIVE_MEASUREMENT_THREAD.close_all_tcp_sockets()
+        except Exception as e:
+            if display_close_msg == True:
+                print(e)
+                print("Active Measurement Thread already closed")
+
+        if display_close_msg == True:
+            print("DNS server socket SUCCESSFULLY closed")
+            print("All replica server clients SUCCESSFULLY closed")
+            print("EXITING PROGRAM")
+
+        exit(0)
 
     def get_ip_src(self) -> str:
         """
@@ -394,25 +425,6 @@ class DNSServer:
         ip_addr = s.getsockname()[0]
         s.close()
         return ip_addr
-
-    # TODO this method is deprecated, DELETE before final submission
-    def get_website_query(self, client_packet, display=False):
-        parsed_request = DNSRecord.parse(client_packet)
-        dns_q = parsed_request.get_q()
-        website_query = dns_q.qname.__str__()
-        urlParseObj = urlparse(website_query)
-
-        if display == True:
-            print("Parsing URL Query:")
-            print(f"Query NetLoc: {urlParseObj.netloc}")
-            print(f"Query path: {urlParseObj.path}\n")
-
-        return urlParseObj
-
-    # TODO this method deprecated, Delete before final submission
-    def parse_client_request(self, client_request):
-        target_site = self.get_website_query(client_request)
-        return self.make_response(target_site)
 
     def get_distance_between_two_points(
         self, client_loc: tuple, replica_loc: tuple
@@ -507,6 +519,8 @@ class DNSServer:
         :param display_request: (bool) if true, statements will be printed to the console
         :return: None
         """
+        global CLIENTS_CONNECTED_RECORD
+
         try:
             while True:
                 if display_request == True:
@@ -549,6 +563,7 @@ class DNSServer:
                     if display_request == True:
                         print(
                             f"Domain of query: {query.get_q().qname.__str__()} not recognized\n"
+                            f"This DNS only resolves for the domain: {self.customer_name}\n"
                             f"Sending NXDOMAIN response to client"
                         )
                         print(PLUS_DIVIDER)
@@ -570,7 +585,7 @@ class DNSServer:
                         # tuple (distance, replica domain)
                         closest_replica: tuple[float, str] = self.get_closest_replica(
                             self.geoLookup.getLatLong(client_ip),
-                            display=display_request,
+                            display=display_request
                         )
 
                     except RuntimeError:
@@ -591,7 +606,7 @@ class DNSServer:
 
                     if display_request == True:
                         print(
-                            f"Selected closest replica to client is {closest_replica[1]}\n"
+                            f"Selected best replica for client is {closest_replica[1]}\n"
                         )
 
                     CLIENTS_CONNECTED_RECORD[client_ip] = closest_replica[1]
@@ -604,13 +619,14 @@ class DNSServer:
                     if display_request == True:
                         print(f"REQUEST IS FROM RETURNING CLIENT: {client_ip}")
                         print(
-                            f"Replica server closest to returning client is {closest_replica[1]}\n"
+                            f"Replica server mapped to returning client is {closest_replica[1]}\n"
                         )
 
                 # ---------------------------------------------------------------------
                 # parse client request and send response
                 dns_response = query.reply()
-                print("query:", query.get_q().qname.__str__())
+                if display_request == True:
+                    print("client query:", query.get_q().qname.__str__(),end="\n\n")
                 # 60 is TTL
                 answer_section_as_str = (
                     query.get_q().qname.__str__()
