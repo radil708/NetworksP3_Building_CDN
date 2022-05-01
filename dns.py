@@ -65,45 +65,15 @@ class ActMeasureThread(Thread):
         Thread.__init__(self)
         global CLIENTS_CONNECTED_RECORD
         global CLIENTS_CHECK_RTT
-        global CLIENT_SOCKETS
-        global VALID_REPLICA_DOMAINS
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
 
         self.display = display
         self.target_http_port = hostServerPort
 
-        #should sockets be made then closed instead of being open the entire time??
-        for valid_rep_dom in VALID_REPLICA_DOMAINS:
-            try:
-                s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                domainIP = socket.gethostbyname(valid_rep_dom)
-                s_.connect((domainIP, hostServerPort))
-
-                # TODO TCP Keep alive pings
-                #s_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-               # s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
-                #s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
-
-                #s_.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, max_fails)
-
-                if display == True:
-                    print(f"TCP Client Socket created, connected to host:\n"
-                          f"domain:{valid_rep_dom}\n"
-                          f"host ip: {domainIP}\n"
-                          f"host port: {hostServerPort}\n")
-                    print("======================\n")
-                CLIENT_SOCKETS.append(s_)
-            except Exception as e:
-                print(e)
-                print("TCP Client unable to connect to host\n"
-                      f"domain:{valid_rep_dom}\n"
-                      f"host ip: {domainIP}\n"
-                      f"host port: {hostServerPort}\n")
-                print("======================\n")
-                continue
-
     def set_up_tcp_sockets(self):
+        global CLIENT_SOCKETS
+        global VALID_REPLICA_DOMAINS
         # should sockets be made then closed instead of being open the entire time??
         for valid_rep_dom in VALID_REPLICA_DOMAINS:
             try:
@@ -161,12 +131,12 @@ class ActMeasureThread(Thread):
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
 
-        if len(CLIENT_SOCKETS) == 0:
-            if self.display == True:
-                print("Tcp clients could not connect to replica servers")
-                print("Active measurement unavailable")
-                print("Shutting down active measurement thread")
-            return
+        # if len(CLIENT_SOCKETS) == 0:
+        #     if self.display == True:
+        #         print("Tcp clients could not connect to replica servers")
+        #         print("Active measurement unavailable")
+        #         print("Shutting down active measurement thread")
+        #     return
 
         while ACTIVE_THREAD_CONTINUE_BOOL == True:
             time.sleep(0.3)
@@ -175,7 +145,7 @@ class ActMeasureThread(Thread):
             if len(CLIENTS_CHECK_RTT) > 0:
                 client_rtt_list = []
                 client_ip = CLIENTS_CHECK_RTT.pop(0)
-
+                self.close_all_tcp_sockets()
                 self.set_up_tcp_sockets()
 
                 # if new client present then send a ping request to every valid replica server
@@ -184,6 +154,8 @@ class ActMeasureThread(Thread):
                         PING_QUERY = "PING " + client_ip
                         each_socket.send(PING_QUERY.encode())
                         data = each_socket.recv(1024).decode()
+                        # close socket after receiving
+                        each_socket.close()
                         #structure of data/response from http servers
                         # data = PING_RTT replica_ip client_ip RTT_from_replica_to_client
                         #example: PING_RTT 45.33.50.187 15.223.19.203 65.299
@@ -194,7 +166,11 @@ class ActMeasureThread(Thread):
 
                         if self.display == True:
                             print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
+                            print("data received, closing temporary tcp client")
                             print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
+                            print("---------------------------\n")
+
+                        each_socket.close()
 
                     except KeyboardInterrupt:
                         print("\nKeyboardInterrupt Occurred During tcp thread")
@@ -202,8 +178,9 @@ class ActMeasureThread(Thread):
                         print("Attempting to close thread loop")
 
                     except Exception as e:
-                        print("line 145: ", e )
-                        print("Unable to get ping information from replica to client")
+                        if self.display == True:
+                            print("line 177: ", e )
+                            print("Unable to get ping information from replica to client")
                         continue
 
                 if self.display == True:
@@ -236,11 +213,17 @@ class ActMeasureThread(Thread):
                                     f"from replica {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
                                 print(
                                     f"Current replica for client:{shortest_rtt_tuple[1]} is {CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]}")
-                                print(f"Setting to {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
 
-                            CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[
-                                shortest_rtt_tuple[2]]
-                    client_rtt_list = []
+                            if CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] == CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]:
+                                if self.display == True:
+                                    print("Current mapped replica to client is the same as replica with fastest RTT")
+                                continue
+                            else:
+                                if self.display == True:
+                                    print(f"Setting to {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
+
+                                CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]
+
 
 
                 except KeyboardInterrupt:
