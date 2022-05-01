@@ -38,7 +38,7 @@ def stop_dns(username, keyfile):
         + username
         + " dnsserver'"
     )
-    os.system(ssh_command)
+    val_1 = os.system(ssh_command)
 
     ssh_command = (
             "ssh -i "
@@ -51,7 +51,15 @@ def stop_dns(username, keyfile):
             + username
             + " python3'"
     )
-    os.system(ssh_command)
+    #
+    val_2 = os.system(ssh_command)
+    if val_1 == 0 and val_2 == 0:
+        print("DNS successfully killed")
+
+    else:
+        print(f"Commands Return: {val_1} & {val_2}")
+        print("Failed to kill dns, DNS may already be killed")
+
 
 
 def stop_http(username, keyfile):
