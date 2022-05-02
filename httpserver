@@ -23,14 +23,6 @@ Runs with ./httpserver -p <port> -o <origin>
 
 Responds to :
 time ; wget http://[your server name]:[your port name]/[path to content]
-172.104.144.157
-wget http://172.104.144.157:40015/Main_Page
-
-wget http://194.195.121.150:40015/Main_Page
-time ; wget http://50.116.41.109:40015/Main_Page
-time ; wget https://p5-http-a.5700.network:40015/Main_Page
-
- ps -fA | grep python
 """
 
 class HttpServer:
@@ -186,12 +178,9 @@ class HttpServer:
                 + client_request_page
             )
             response = requests.get(complete_url)
-
-            if ZIPPED:
+            if response.status_code == 200:
                 self.cache.add_to_zipped_cache(page_path, response.content)
-            else:
-                self.cache.add_to_cache(page_path, response.content)
-
+                
             return response.content
 
     def send_html_response(self, client_rq, client_socket):
@@ -207,8 +196,8 @@ class HttpServer:
                 response_content = self.get_html_from_zipped(client_rq)
             else:
                 response_content = self.get_html(client_rq)
-            header = f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n"
-            client_socket.send(header.encode("utf-8"))
+            #header = f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n"
+            #client_socket.send(header.encode("utf-8"))
             client_socket.send(response_content)
 
         client_socket.close()
@@ -281,6 +270,7 @@ class Cache:
 
         # Zip and write the contents to the file
         with gzip.open(zip_filepath, "wb") as wfile:
+            wfile.write(f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n".encode())
             wfile.write(response_content)
 
         # Add to cache dict and current size
@@ -301,6 +291,7 @@ class Cache:
 
         # Write the contents to the file
         with open(filepath, "wb") as wfile:
+            wfile.write(f"HTTP/1.1 200 OK\r\nContent-Length: {len(response_content)}\nContent-Type: text/html\r\n\r\n".encode())
             wfile.write(response_content)
 
         # Add to cache dict and current size
