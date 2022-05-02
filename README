@@ -1,117 +1,127 @@
 README
 
-High level approach:
+HIGH LEVEL APPROACH
+	1. Scripts
+		- deployCND:
+			> deploys dns and http to the nodes using scp and update permissions
 
-1. Scripts 
-    - deployCND:
-    	> deploys dns and http to the nodes using scp and update permissions
+		- runCDN:
+			> runs the dnsserver with the port and dns name passed
+			> runs the httpserver on each replica node with the port and origin args passed
 
-    - runCDN:
-        > runs the dnsserver with the port and dns name passed
-        > runs the httpserver on each replica node with the port and origin args passed
-
-    - stopCDN:
-    	> stops dnsserver and all httpservers
-    How to use:
-		./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+		- stopCDN:
+			> stops dnsserver and all httpservers
+		How to use:
+			./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
 
-    ***Custom flags have been added for testing purposes on our side (-d , -f , -s)
-    	but they are optional and should NOT be used during speed testing of servers.
+		***Custom flags have been added for testing purposes on our side (-d , -f , -s)
+			but they are optional and should NOT be used during speed testing of servers.
 
-    How to use:
-		./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
+		How to use:
+			./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
-	*** Please refrain from using custom arg -s as that will tell the servers to print
-		status statements from the servers to the terminal, potentially slowing down the program
-		during speed testing. These statements are useful for keeping track
-		 of server events and debugging. If -s arg is not None then the server statements will print.
+		*** Please refrain from using custom arg -s as that will tell the servers to print
+			status statements from the servers to the terminal, potentially slowing down the program
+			during speed testing. These statements are useful for keeping track
+			 of server events and debugging. If -s arg is not None then the server statements will print.
 
-	*** Custom arg -f used to apply the script to only one server, if not used
-		the default is to apply the script to both dnsserver and httpserver. It only
-		accepts dns or http as valid arguments
-	 	Example:./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile> -f dns
-	 		will ONLY run the dnsserver
+		*** Custom arg -f used to apply the script to only one server, if not used
+			the default is to apply the script to both dnsserver and httpserver. It only
+			accepts dns or http as valid arguments
+			Example:./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile> -f dns
+				will ONLY run the dnsserver
 
-	 *** Custom arg -d can really only be used by us for our testing purposes. It is used
-	 		to set default values to the other arguments. Please do NOT use this argument
-	 		when running the scripts.
+		 *** Custom arg -d can really only be used by us for our testing purposes. It is used
+				to set default values to the other arguments. Please do NOT use this argument
+				when running the scripts.
 
 -----------------------------------------------------------------------------------------------
 
 
-2. httpserver - uses a socket to listen for queries from client and return a html
-    - Queries the origin server if the query is not cached (requests.get())
-    - LFU cache is used to remove the least frequently requested query file from the cache
-    - Listens to tcp requests from tcp clients created in the dns
-     	to ping the client and return a rtt to the dns server for active measurement.
+	2. httpserver - uses a socket to listen for queries from client and return a html
+		- Queries the origin server if the query is not cached (requests.get())
+		- LFU cache is used to remove the least frequently requested query file from the cache
+		- Listens to tcp requests from tcp clients created in the dns
+			to ping the client and return a rtt to the dns server for active measurement.
 
-     How to run:
-     	./httpserver -p <port> -o <origin>
+		 How to run:
+			./httpserver -p <port> -o <origin>
 
-    *** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
-		http server status statements will be printed to the screen. Please do NOT use this argument when testing
-		for http server speed.
+		*** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
+			http server status statements will be printed to the screen. Please do NOT use this argument when testing
+			for http server speed.
 
 
 ----------------------------------------------------------------------------------------------
-3. dnsserver
-	- Utilizes active measurement in addition to geolocation
+	3. dnsserver
+		- Utilizes active measurement in addition to geolocation
 
-	- Creates a udp socket to listen for incoming dns requests
+		- Creates a udp socket to listen for incoming dns requests
 
-	- When a client sends a request to this server, the closest (distance wise) replica
-		server will be sent as a reply and this pair is mapped/saved in a dictionary.
-		> The dns will then create tcp client sockets that communicate with the replica
-			servers
-		> These client sockets will request the RTT information between the replica and client
-		> If the replica with the fastest RTT to client is NOT the same as the currently mapped
-			one, then the mapping is updated and so future dns queries by that client
-			are directed to the replica with the fastest RTT.
-		> This RTT query is performed on a different thread then the main dnsserver
-		> This update only occurs once per new client and so is self-rate-limiting
+		- When a client sends a request to this server, the closest (distance wise) replica
+			server will be sent as a reply and this pair is mapped/saved in a dictionary.
+			> The dns will then create tcp client sockets that communicate with the replica
+				servers
+			> These client sockets will request the RTT information between the replica and client
+			> If the replica with the fastest RTT to client is NOT the same as the currently mapped
+				one, then the mapping is updated and so future dns queries by that client
+				are directed to the replica with the fastest RTT.
+			> This RTT query is performed on a different thread then the main dnsserver
+			> This update only occurs once per new client and so is self-rate-limiting
 
-	- The dns is setup to accept queries for the domain (-n arg) passed in by the user
+		- The dns is setup to accept queries for the domain (-n arg) passed in by the user
 
-	- If the client's request has a domain that is not the user defined domain name (-n arg)
-		then it will send an NXDomain response.
-		> The code does allow for dig requests to be accepted though
+		- If the client's request has a domain that is not the user defined domain name (-n arg)
+			then it will send an NXDomain response.
+			> The code does allow for dig requests to be accepted though
 
-	How geolocation is setup:
-		- A zip file is downloaded by pre_dns_setup and unpacked.
-		- This file maps ranges of ip addresses to latitudes and longitudes
-		- geo_db is a class that manages getting this information. It also checks if the zip file/cvs file
-			exist and if they do not, will download them.
-		- geo_db utilizes binary search to find the the lat and long of any ip address passed in
-			geo_db.getLatLong("ip address") -> (lat,long)
-		- the DNSServer class has a function that will determine the distance between any two coordinates
-			and it is used to inform the server of the replica server closest to the client.
-			DNSserver.get_distance_between_two_points( (client lat, client long) , (replica lat, replica long) ) -> distance in KM
+		How geolocation is setup:
+			- A zip file is downloaded by pre_dns_setup and unpacked.
+			- This file maps ranges of ip addresses to latitudes and longitudes
+			- geo_db is a class that manages getting this information. It also checks if the zip file/cvs file
+				exist and if they do not, will download them.
+			- geo_db utilizes binary search to find the the lat and long of any ip address passed in
+				geo_db.getLatLong("ip address") -> (lat,long)
+			- the DNSServer class has a function that will determine the distance between any two coordinates
+				and it is used to inform the server of the replica server closest to the client.
+				DNSserver.get_distance_between_two_points( (client lat, client long) , (replica lat, replica long) ) -> distance in KM
 
-	- Tests were made to verify distance calculations were correct and that the geolocation strategy was picking the
-		correct closest server (See geoCalcTest.py)
+		- Tests were made to verify distance calculations were correct and that the geolocation strategy was picking the
+			correct closest server (See geoCalcTest.py)
 
-	How to run:
-		./dnsserver -p <port> -n <name>
+		How to run:
+			./dnsserver -p <port> -n <name>
 
-	*** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
-		dnsserver status statements will be printed to the screen. Please do NOT use this argument when testing
-		for dnsserver speed.
+		*** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
+			dnsserver status statements will be printed to the screen. Please do NOT use this argument when testing
+			for dnsserver speed.
 
-		Example of how to use it: ./dnsserver -p <port> -n <name> -s 1
+			Example of how to use it: ./dnsserver -p <port> -n <name> -s 1
 
-	File Dependencies for dnsserver:
-		1.) geo_db.py
-		2.) dns.py
-		3.) dnsDriver.py
----------------------------------------------------------------------------------------------------------------------------------------
-Contributions:
+		File Dependencies for dnsserver:
+			1.) geo_db.py : class used for geolocation
+			2.) dns.py : class containing dnsserver code
+			3.) dnsDriver.py : converted into dnsserver which is used to run the code
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Utkarshna - wrote deploy/run/stop scripts,built httpserver,
- 			implemented active measurement code for http server side,
- 			implemented Least Frequently Used (LFU) strategy
+CONTRIBUTIONS
 
-Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
- 		implemented geo cache strategy, tested/verified geo functions,
- 		automated_testing (http server speed testing)
- 		implemented argparser and custom flags for deploy/run/stop scripts
+	Utkarshna - wrote deploy/run/stop scripts,built httpserver, http testing
+				implemented active measurement code for http server side,
+				implemented Least Frequently Used (LFU) strategy
+--------------------------------------------------------------------------------------------------------------------------------
+	Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
+			implemented geo cache strategy, tested/verified geo functions,
+			automated_testing.py (http server speed testing)
+			implemented argparser and custom flags for deploy/run/stop scripts
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CHALLENGES:
+ 	- Implementing active measurements
+ 	- Multithreading Implementation
+ 	- Choosing the best strategy for http server: Least Frequently Used (LFU) vs. Least Recently Used (LRU)
+ 	- Implementing LFU
+ 	- Testing servers
+ 	- Getting the dns to communicate with the http servers and vice versa
