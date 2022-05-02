@@ -73,15 +73,14 @@ def run_dns(port, username, keyfile, domain_name, dns_display):
         print("++++++++++++++++++++++++++++++++++++\n")
 
 
-def thread_runs(port, username, origin, keyfile):
+def thread_runs(port, username, origin, keyfile,display=False):
     threads = []
     for node in HTTP_NODES:
         t = threading.Thread(
-            target=run_http, args=(node, port, username, origin, keyfile)
+            target=run_http, args=(node, port, username, origin, keyfile,display)
         )
         t.setDaemon(True)
         threads.append(t)
-        print("\n")
 
     for t in threads:
         t.start()
@@ -90,23 +89,41 @@ def thread_runs(port, username, origin, keyfile):
         t.join()
 
 
-def run_http(node, port, username, origin, keyfile):
+def run_http(node, port, username, origin, keyfile, display=False):
     # ssh -i ~/.ssh/id_ed25519.pub team_t@p5-http-d.5700.network './httpserver -p 40015 -o origin'
     # Run httpserver on each replica server
     # for node in HTTP_NODES:
-    run_command = (
-        "ssh -i "
-        + keyfile
-        + " "
-        + username
-        + "@"
-        + node
-        + " nohup ./httpserver -p "
-        + str(port)
-        + " -o "
-        + origin
-        + " &"
-    )
+
+    if display == False:
+        run_command = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + node
+            + " nohup ./httpserver -p "
+            + str(port)
+            + " -o "
+            + origin
+            + " &"
+        )
+    else:
+        run_command = (
+                "ssh -i "
+                + keyfile
+                + " "
+                + username
+                + "@"
+                + node
+                + " nohup ./httpserver -p "
+                + str(port)
+                + " -o "
+                + origin
+                + " -s 1"
+                + " &"
+        )
+
 
     running = os.system(run_command)
 
@@ -238,7 +255,7 @@ def main():
     print("------------------------------\n")
 
     if runHTTP == True:
-        thread_runs(args.port, args.username, args.origin, args.keyfile)
+        thread_runs(args.port, args.username, args.origin, args.keyfile,display=args.display)
     if runDNS == True:
         run_dns(args.port, args.username, args.keyfile, args.domain_name, dns_display=args.display)
 

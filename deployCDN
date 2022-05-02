@@ -157,7 +157,9 @@ def main():
         help="Port that the dns server will bind to",
     )
     parser.add_argument(
-        "-o", "--origin", metavar="", help="origin server containing all html files"
+        "-o", "--origin", metavar="", help="origin server containing all html files, "
+                                           "http servers will contact this server if "
+                                           "they do not have the requested page cached"
     )
     parser.add_argument(
         "-n",

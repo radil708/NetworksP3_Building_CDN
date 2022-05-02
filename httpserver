@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 
 import requests
 import os, sys
@@ -7,6 +8,7 @@ import gzip
 import shutil
 from collections import Counter
 
+DEFAULT_ORIGIN_SERVER_DOMAIN = "cs5700cdnorigin.ccs.neu.edu"
 DEFAULT_ORIGIN_PORT = 8080
 CACHED_FILES_LIST = "cached_files.txt"
 DEFAULT_PORT = 40015
@@ -36,7 +38,7 @@ class HttpServer:
         self.current_size = os.path.getsize(self.current_folder)
 
         self.server_ip = socket.gethostbyname(socket.gethostname())
-        self.cache = Cache(display)
+        self.cache = Cache(display=display)
         self.create_and_connect_socket()
 
         self.client_ip_ping_dict = {}
@@ -148,11 +150,13 @@ class HttpServer:
         # print("Client rq page", client_request_page, "page path", page_path)
 
         if page_path in self.cache.cached_files:
-            print("Found:", page_path, "is in the cache.")
+            if self.display == True:
+                print("Found:", page_path, "is in the cache.")
             self.cache.cached_files[page_path] += 1
             return self.cache.get_file(page_path)
         else:
-            print("Could not find:", page_path, "in zipped cache. Querying the origin.")
+            if self.display == True:
+                print("Could not find:", page_path, "in zipped cache. Querying the origin.")
 
             complete_url = "http://" + ORIGIN + ":8080" + client_request_page
             response = requests.get(complete_url)
@@ -326,16 +330,57 @@ class Cache:
 
 
 def main():
-    port = DEFAULT_PORT
-    origin = ORIGIN
+    parser = argparse.ArgumentParser(description="Parser for dnsserver args")
+    parser.add_argument(
+        "-p",
+        "--port",
+        metavar="",
+        type=int,
+        help="Port that the http server will bind to",
+    )
+    parser.add_argument(
+        "-o",
+        "--origin",
+        metavar="",
+        help="origin server containing all html files, http servers will contact this server if "
+             "they do not have the requested page cached"
+    )
 
-    for i in range(len(sys.argv[1:])):
-        if sys.argv[i] == "-p":
-            port = int(sys.argv[i + 1])
-        elif sys.argv[i] == "-o":
-            origin = sys.argv[i + 1]
+    # -----------------------------------------------------------------------------------------------------
+    # optional args
+    parser.add_argument(
+        "-d",
+        "--default",
+        metavar="",
+        help="optional, exclusive arg, if not None default port and name values and displays print statements",
+    )
+    parser.add_argument(
+        "-s",
+        "--display",
+        metavar="",
+        help="optional arg, if not None displays print statements",
+    )
+    args = parser.parse_args()
 
-    httpserver = HttpServer(port, origin, display=True)
+    if args.default is not None:
+        args.port = DEFAULT_PORT
+        args.origin = DEFAULT_ORIGIN_SERVER_DOMAIN
+    else:
+        if args.port is None:
+            print("Missing port (-p) arguments")
+            print("EXITING httpserver program")
+            exit(0)
+        elif args.origin is None:
+            print("Missing port (-o) arguments")
+            print("EXITING httpserver program")
+            exit(0)
+
+    if args.display is not None:
+        args.display = True
+    else:
+        args.display = False
+
+    httpserver = HttpServer(args.port, args.origin, display=args.display)
 
     while True:
         try:
