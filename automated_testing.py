@@ -110,17 +110,11 @@ def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_por
 def get_stats_for_one_page(df_in, page_name):
     temp_df = df_in[df_in['content_requested'] == page_name]
 
-    #print(temp_df, end="\n\n")
-
     max_val = round(temp_df['http_time_sec'].max(),5)
     min_val = round(temp_df['http_time_sec'].min(),5)
     avg_overall = round(temp_df['http_time_sec'].mean(),5)
 
     max_val_index = temp_df['http_time_sec'].idxmax()
-
-    #print("Max: ", max_val, " at index = ", max_val_index)
-    #print("Min: ", min_val)
-    #print("avg_overall: ", avg_overall)
 
     df_without_max = temp_df.drop(axis=0,index=max_val_index)
     avg_post_cache = round(df_without_max['http_time_sec'].mean(),5)
@@ -141,7 +135,7 @@ def main():
     file_name = "pageviews.csv"
     list_content, list_weight = build_associative_arr(file_name)
     print(f"done building associative array from {file_name}")
-    NUMBER_OF_REQUEST = 50
+    NUMBER_OF_REQUEST = 100
 
     mandatory = ['Main_Page','-','India','Coronavirus','Doja_Cat']
     list_page_requests_distributed = get_list_pages_following_distribution_abs_weight(list_content,list_weight,NUMBER_OF_REQUEST)
@@ -166,11 +160,6 @@ def main():
 
     df_results.to_csv('auto_test_results.csv',index=False)
     print("Done getting raw results\n")
-
-    #pd.read_csv('auto_test_results.csv')
-    content_page = list_page_requests_distributed[0]
-
-    get_stats_for_one_page(df_results, content_page)
 
     analysis_column_names = ['page_content','max_latency','min_latency','overall_avg_latency','post_cache_latency']
     analysis_results = pd.DataFrame(columns=analysis_column_names)

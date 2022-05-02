@@ -107,10 +107,11 @@ High level approach:
 ---------------------------------------------------------------------------------------------------------------------------------------
 Contributions:
 
-Utkarshna - wrote deploy/run/stop scripts,built httpserver, httpserver testing,
+Utkarshna - wrote deploy/run/stop scripts,built httpserver,
  			implemented active measurement code for http server side,
  			implemented Least Frequently Used (LFU) strategy
 
 Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
  		implemented geo cache strategy, tested/verified geo functions,
+ 		automated_testing (http server speed testing)
  		implemented argparser and custom flags for deploy/run/stop scripts
