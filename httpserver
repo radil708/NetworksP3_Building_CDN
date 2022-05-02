@@ -15,7 +15,7 @@ DEFAULT_PORT = 40015
 ORIGIN = "cs5700cdnorigin.ccs.neu.edu"
 MAX_CACHE_SIZE_BYTES = 1000000 * 19  # 19MB of cache
 MAX_CACHED_FILES = 1000
-ZIPPED = False
+ZIPPED = True
 ORIGIN_ONLY = False
 
 """

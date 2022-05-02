@@ -83,9 +83,13 @@ def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_por
             end_time = time.perf_counter()
             status_code_rcvd = requested_page.status_code
         except requests.exceptions.ConnectionError:
+            print(f"Possible Query Error: \n{request_query}")
             print(f"Page may be invalid for {target_page}, Unable to request")
             end_time = 999999999
             status_code_rcvd = 404
+
+        #add to slow request to not be seen as ddos
+        #time.sleep(0.2)
 
         duration_request = round(end_time - start_time, 5)
         if duration_request >= 999:
@@ -137,7 +141,7 @@ def main():
     file_name = "pageviews.csv"
     list_content, list_weight = build_associative_arr(file_name)
     print(f"done building associative array from {file_name}")
-    NUMBER_OF_REQUEST = 100
+    NUMBER_OF_REQUEST = 50
 
     mandatory = ['Main_Page','-','India','Coronavirus','Doja_Cat']
     list_page_requests_distributed = get_list_pages_following_distribution_abs_weight(list_content,list_weight,NUMBER_OF_REQUEST)
