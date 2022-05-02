@@ -63,14 +63,14 @@ def run_dns(port, username, keyfile, domain_name, dns_display):
     value = os.system(run_command)
 
     if value == 0:
-        print("\nDNS RUN COMMAND SUCCESSFULLY SENT\n")
+        print("DNS RUN COMMAND SUCCESSFULLY SENT\n")
         print("Please wait a few seconds before sending requests")
         print("++++++++++++++++++++++++++++++++++++\n")
     else:
         print(f"DNS RUN RETURNED {value}")
         print("DNS RUN FAILED")
         print("CONTINUING PROGRAM")
-    print("++++++++++++++++++++++++++++++++++++\n")
+        print("++++++++++++++++++++++++++++++++++++\n")
 
 
 def thread_runs(port, username, origin, keyfile):
@@ -81,6 +81,7 @@ def thread_runs(port, username, origin, keyfile):
         )
         t.setDaemon(True)
         threads.append(t)
+        print("\n")
 
     for t in threads:
         t.start()
@@ -225,7 +226,7 @@ def main():
 
     print(
         f"USER ENTERED VALUES FOR RUN SCRIPT:"
-        f"\nPort:{args.port}"
+        f"\nPort: {args.port}"
         f"\nOrigin: {args.origin}"
         f"\nDomain: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"

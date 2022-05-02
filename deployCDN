@@ -257,7 +257,7 @@ def main():
 
     print(
         f"USER ENTERED VALUES FOR DEPLOY SCRIPT:"
-        f"\nPort:{args.port}"
+        f"\nPort: {args.port}"
         f"\nOrigin: {args.origin}"
         f"\nDomain: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"

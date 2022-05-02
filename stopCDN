@@ -53,6 +53,8 @@ def stop_dns(username, keyfile):
     )
     #
     val_2 = os.system(ssh_command)
+
+
     if val_1 == 0 or val_2 == 0:
         print("DNS successfully killed")
 
@@ -61,6 +63,24 @@ def stop_dns(username, keyfile):
     else:
         print(f"Commands Return: {val_1} for kill dnsserver & {val_2} for kill python")
         print("DNS Kill commands sent")
+
+    kill_all_cmd = (
+            "ssh -i "
+            + keyfile
+            + " "
+            + username
+            + "@"
+            + DNS_NODE
+            + " 'killall -9 -u "
+            + username + "'"
+    )
+
+    val_3 = os.system(kill_all_cmd)
+
+    if val_3 == 65280:
+        print(f"Killed any lingering processes executed by {username} on dns server")
+
+    print("============================================\n")
 
 
 
@@ -81,6 +101,24 @@ def stop_http(username, keyfile):
         )
         inta = os.system(ssh_command)
         print("KILLED httpserver in node:", node, "return val:", inta)
+
+        kill_all_cmd = (
+                "ssh -i "
+                + keyfile
+                + " "
+                + username
+                + "@"
+                + node
+                + " 'killall -9 -u "
+                + username + "'"
+        )
+
+        val_3 = os.system(kill_all_cmd)
+
+        if val_3 == 65280:
+            print(f"Killed any lingering processes executed by {username} on this http server")
+
+        print("-----------------------------------------\n")
 
 
 def main():
@@ -195,7 +233,7 @@ def main():
 
     print(
         f"USER ENTERED VALUES FOR STOP SCRIPT:"
-        f"\nPort:{args.port}"
+        f"\nPort: {args.port}"
         f"\nOrigin: {args.origin}"
         f"\nDomain: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"
@@ -207,10 +245,10 @@ def main():
 
     if runDNS == True:
         stop_dns(args.username, args.keyfile)
-        print("DNS stop script has run to completion\n")
+        print("DNS stop script has run to completion\n".upper())
     if runHTTP == True:
         stop_http(args.username, args.keyfile)
-        print("HTTP stop script has run to completion")
+        print("HTTP stop script has run to completion".upper())
 
 #
 

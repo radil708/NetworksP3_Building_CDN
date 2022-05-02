@@ -134,7 +134,6 @@ class ActMeasureThread(Thread):
                 print("There are not tcp sockets to close")
 
 
-
     #Override run method of threading.Thread super class
     def run(self):
         '''
@@ -223,10 +222,11 @@ class ActMeasureThread(Thread):
                         else:
                             # there is a fast one
                             if self.display == True:
-                                print(f"Fastest rtt {shortest_rtt_tuple[0]} to client {shortest_rtt_tuple[1]} "
-                                    f"from replica {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
+                                print(f"Fastest rtt = {shortest_rtt_tuple[0]} to client:{shortest_rtt_tuple[1]} "
+                                    f"is from replica:\n\t{IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]} / {shortest_rtt_tuple[2]}")
                                 print(
-                                    f"Current replica for client:{shortest_rtt_tuple[1]} is {CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]}")
+                                    f"Current replica for client:{shortest_rtt_tuple[1]} is:\n\t{CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]} / "
+                                    f"{socket.gethostbyname(CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]])}")
 
                             if CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] == CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]]:
                                 if self.display == True:
@@ -235,8 +235,7 @@ class ActMeasureThread(Thread):
                                 continue
                             else:
                                 if self.display == True:
-
-                                    print(f"Setting to {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]}")
+                                    print(f"Mapping client to faster replica: {IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]} / {shortest_rtt_tuple}")
 
                                 CLIENTS_CONNECTED_RECORD[shortest_rtt_tuple[1]] = IP_TO_VALID_REP_DOMAIN_DICT[shortest_rtt_tuple[2]]
 
