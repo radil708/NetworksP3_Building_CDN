@@ -128,6 +128,24 @@ def build_analysis_df(df_raw_res, df_analysis, page_name):
     analysis_results = pd.concat([df_analysis, d_analysis_temp_df], ignore_index=True)
     return analysis_results
 
+def fill_cache_for_beacon_testing():
+    # used to fill the beacons to test beacon testing speed by having http servers query and save
+    # data from the origin
+
+    beacon_testing_pages = ['Main_Page', '-', 'India', 'Coronavirus', 'Doja_Cat']
+
+    df_columns = ['content_requested', 'http_time_sec', 'status_code']
+    df_results = pd.DataFrame(columns=df_columns)
+
+    for key in REPLICA_DICT_IP.keys():
+        df_results = make_df_for_analysis(df_results, beacon_testing_pages, REPLICA_DICT_IP[key], 40015)
+        print(df_results)
+        print(f"Done filling {key} server with small testing cache")
+        print("----------------------------------------------\n")
+
+    print("DONE FILLING BEACON CACHE")
+    print("EXITING PROGRAM")
+    exit(0)
 
 def main():
     df_columns =['content_requested','http_time_sec','status_code']
@@ -145,6 +163,9 @@ def main():
         if each not in list_page_requests_distributed:
             list_page_requests_distributed.append(each)
 
+    # Uncomment code below to fill server caches with a few pages
+    # It will close this program as soon as it's done
+    #fill_cache_for_beacon_testing()
 
     target_ip = REPLICA_DICT_IP["p5-http-a.5700.network"]
     target_port = 40015
