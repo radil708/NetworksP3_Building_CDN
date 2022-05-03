@@ -8,7 +8,7 @@ import requests
 DEFAULT_PORT = 40015
 
 '''
-This file is used for speed testing
+This file is used for our speed testing and is not involved in [deploy|run|stop]CND for the submission
 '''
 def run(port_in: int, display: bool = False) -> None:
     beacon_testing_pages = ['Main_Page', '-', 'India', 'Coronavirus', 'Doja_Cat']
