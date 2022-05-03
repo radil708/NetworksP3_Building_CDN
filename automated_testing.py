@@ -56,7 +56,7 @@ def make_matching_list(list_column_names, list_input):
             dict_[list_column_names[i]] = list_input[i]
     return dict_
 
-def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_port):
+def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_port, display = True):
     df_columns = list(df_with_col.columns)
 
     total_page_request_len = len(list_pages)
@@ -67,7 +67,8 @@ def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_por
     for each in list_pages:
         if counter == quarter_tracker:
             quarter_tracker += quarter_amt_abs
-            print(f"Progressed through {percent_counter}% of requests")
+            if display == True:
+                print(f"Progressed through {percent_counter}% of requests")
             percent_counter += 25
 
         target_page = each
@@ -83,8 +84,9 @@ def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_por
             end_time = time.perf_counter()
             status_code_rcvd = requested_page.status_code
         except requests.exceptions.ConnectionError:
-            print(f"Possible Query Error: \n{request_query}")
-            print(f"Page may be invalid for {target_page}, Unable to request")
+            if display == True:
+                print(f"Possible Query Error: \n{request_query}")
+                print(f"Page may be invalid for {target_page}, Unable to request")
             end_time = 999999999
             status_code_rcvd = 404
 
@@ -103,8 +105,9 @@ def make_df_for_analysis(df_with_col,list_pages, http_target_ip, http_target_por
         df_with_col = pd.concat([df_with_col, d_temp], ignore_index=True)
         counter += 1
 
-    print(f"Progressed through 100% of requests")
-    print("----------------\n")
+    if display == True:
+        print(f"Progressed through 100% of requests")
+        print("----------------------------\n")
     return df_with_col
 
 def get_stats_for_one_page(df_in, page_name):
@@ -128,7 +131,7 @@ def build_analysis_df(df_raw_res, df_analysis, page_name):
     analysis_results = pd.concat([df_analysis, d_analysis_temp_df], ignore_index=True)
     return analysis_results
 
-def fill_cache_for_beacon_testing():
+def fill_cache_for_beacon_testing(display=False):
     # used to fill the beacons to test beacon testing speed by having http servers query and save
     # data from the origin
 
@@ -138,13 +141,15 @@ def fill_cache_for_beacon_testing():
     df_results = pd.DataFrame(columns=df_columns)
 
     for key in REPLICA_DICT_IP.keys():
-        df_results = make_df_for_analysis(df_results, beacon_testing_pages, REPLICA_DICT_IP[key], 40015)
-        print(df_results)
-        print(f"Done filling {key} server with small testing cache")
-        print("----------------------------------------------\n")
+        df_results = make_df_for_analysis(df_results, beacon_testing_pages, REPLICA_DICT_IP[key], 40015,display=display)
+        if display == True:
+            print(df_results)
+            print(f"Done filling {key} server with small testing cache")
+            print("----------------------------------------------\n")
 
-    print("DONE FILLING BEACON CACHE")
-    print("EXITING PROGRAM")
+    if display == True:
+        print("DONE FILLING BEACON CACHE")
+        print("EXITING PROGRAM")
     exit(0)
 
 def main():
@@ -165,7 +170,7 @@ def main():
 
     # Uncomment code below to fill server caches with a few pages
     # It will close this program as soon as it's done
-    #fill_cache_for_beacon_testing()
+    #fill_cache_for_beacon_testing(display=True)
 
     target_ip = REPLICA_DICT_IP["p5-http-a.5700.network"]
     target_port = 40015
