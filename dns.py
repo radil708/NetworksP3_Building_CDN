@@ -82,6 +82,7 @@ class ActMeasureThread(Thread):
         global IP_TO_VALID_REP_DOMAIN_DICT
 
         self.client_sockets = []
+        self.active_thread_lock = threading.Lock()
 
         self.display = display
         self.target_http_port = hostServerPort
@@ -179,9 +180,20 @@ class ActMeasureThread(Thread):
                                  f"host port: {self.target_http_port}\n")
 
                         PING_QUERY = "PING " + client_ip
+
+                        self.active_thread_lock.acquire()
+
+                        if self.display == True:
+                            print("Active thread locked\n")
+
                         s_.send(PING_QUERY.encode())
                         data = s_.recv(1024).decode()
                         s_.close()
+
+                        if self.display == True:
+                            print("Active thread lock released")
+                        self.active_thread_lock.release()
+
                         # close socket after receiving
 
                         #structure of data/response from http servers
@@ -208,7 +220,7 @@ class ActMeasureThread(Thread):
 
                     except Exception as e:
                         if self.display == True:
-                            print("line 213: ", e )
+                            print("line 223: ", e )
                             print("Unable to get ping information from replica to client")
                         continue
 
@@ -566,7 +578,7 @@ class DNSServer:
                     data, client_conn_info = self.sock.recvfrom(512)
 
                     if display_request == True:
-                        print("Locking Main DNS Thread")
+                        print("LOCKING Main DNS Thread\n")
 
                     self.thread_lock.acquire()
 
@@ -579,6 +591,10 @@ class DNSServer:
                     else:
                         print("\nKeyboard Interrupt Occured")
                         self.close_server()
+
+                except Exception as e:
+                    print("line 597: ", e)
+                    continue
 
                 # ip is first element, port is second
                 client_ip = client_conn_info[0]
@@ -684,7 +700,7 @@ class DNSServer:
                     print(PLUS_DIVIDER)
 
                 if display_request == True:
-                    print("Releasing MAIN DNS Thread Lock")
+                    print("RELEASING MAIN DNS Thread Lock\n")
                 self.thread_lock.release()
 
                 if flag_new_client == True:
