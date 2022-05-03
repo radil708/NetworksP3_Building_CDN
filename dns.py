@@ -154,6 +154,7 @@ class ActMeasureThread(Thread):
         global CLIENTS_CHECK_RTT
         global ACTIVE_THREAD_CONTINUE_BOOL
         global IP_TO_VALID_REP_DOMAIN_DICT
+        global VALID_REPLICA_DOMAINS
 
         while ACTIVE_THREAD_CONTINUE_BOOL == True:
             time.sleep(0.3)
@@ -162,16 +163,27 @@ class ActMeasureThread(Thread):
             if len(CLIENTS_CHECK_RTT) > 0:
                 client_rtt_list = []
                 client_ip = CLIENTS_CHECK_RTT.pop(0)
-                self.close_all_tcp_sockets()
-                self.set_up_tcp_sockets()
+                #self.close_all_tcp_sockets()
+                #self.set_up_tcp_sockets()
 
                 # if new client present then send a ping request to every valid replica server
-                for each_socket in self.client_sockets:
+                #for each_socket in self.client_sockets:
+                for valid_rep_dom in VALID_REPLICA_DOMAINS:
                     try:
+                        s_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        domainIP = socket.gethostbyname(valid_rep_dom)
+                        s_.connect((domainIP, self.target_http_port))
+
+                        if display == True:
+                            print(f"TCP Client Socket created, connected to host:\n"
+                                 f"domain:{valid_rep_dom}\n"
+                                 f"host ip: {domainIP}\n"
+                                 f"host port: {self.target_http_port}\n")
+
                         PING_QUERY = "PING " + client_ip
-                        each_socket.send(PING_QUERY.encode())
-                        data = each_socket.recv(1024).decode()
-                        each_socket.close()
+                        s_.send(PING_QUERY.encode())
+                        data = s_.recv(1024).decode()
+                        s_.close()
                         # close socket after receiving
 
                         #structure of data/response from http servers
@@ -186,6 +198,7 @@ class ActMeasureThread(Thread):
                             print(f"Sent RTT CHECK TO HTTP SERVER {data_lst[1]}")
                             print("data received, closing temporary tcp client")
                             print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
+                            print("tcp client socket closed")
                             print(MINUS_DIVIDER)
 
 
@@ -672,7 +685,7 @@ class DNSServer:
                     print(PLUS_DIVIDER)
 
                 if display_request == True:
-                    print("Releasing Thread Lock")
+                    print("Releasing MAIN DNS Thread Lock")
                 self.thread_lock.release()
 
                 if flag_new_client == True:
