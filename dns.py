@@ -157,8 +157,6 @@ class ActMeasureThread(Thread):
         global VALID_REPLICA_DOMAINS
 
         while ACTIVE_THREAD_CONTINUE_BOOL == True:
-            time.sleep(0.3)
-
             # Check for any new clients
             if len(CLIENTS_CHECK_RTT) > 0:
                 client_rtt_list = []
@@ -174,7 +172,7 @@ class ActMeasureThread(Thread):
                         domainIP = socket.gethostbyname(valid_rep_dom)
                         s_.connect((domainIP, self.target_http_port))
 
-                        if display == True:
+                        if self.display == True:
                             print(f"TCP Client Socket created, connected to host:\n"
                                  f"domain:{valid_rep_dom}\n"
                                  f"host ip: {domainIP}\n"
@@ -210,7 +208,7 @@ class ActMeasureThread(Thread):
 
                     except Exception as e:
                         if self.display == True:
-                            print("line 177: ", e )
+                            print("line 213: ", e )
                             print("Unable to get ping information from replica to client")
                         continue
 
@@ -275,6 +273,7 @@ class ActMeasureThread(Thread):
                         print("Line 187: ", e)
                         print("No responses from http pings")
             else:
+                time.sleep(0.3)
                 continue
 
         #Exited out of loop so close all sockets
