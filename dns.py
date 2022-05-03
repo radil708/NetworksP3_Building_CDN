@@ -2,6 +2,7 @@
 import math
 import os
 import socket
+import threading
 import time
 from threading import Thread
 
@@ -170,6 +171,7 @@ class ActMeasureThread(Thread):
                         PING_QUERY = "PING " + client_ip
                         each_socket.send(PING_QUERY.encode())
                         data = each_socket.recv(1024).decode()
+                        each_socket.close()
                         # close socket after receiving
 
                         #structure of data/response from http servers
@@ -186,7 +188,7 @@ class ActMeasureThread(Thread):
                             print(f"RTT = {data_lst[3]} to client: {data_lst[2]}")
                             print(MINUS_DIVIDER)
 
-                        each_socket.close()
+
 
                     except KeyboardInterrupt:
                         print("\nKeyboardInterrupt Occurred During tcp thread")
@@ -391,6 +393,8 @@ class DNSServer:
             )
             print(PLUS_DIVIDER)
 
+        self.thread_lock = threading.Lock()
+
         ACTIVE_THREAD_CONTINUE_BOOL = True
         ACTIVE_MEASUREMENT_THREAD = ActMeasureThread(dns_port,display)
         ACTIVE_MEASUREMENT_THREAD.daemon = True # thread will die when main thread exits
@@ -541,6 +545,7 @@ class DNSServer:
 
         try:
             while True:
+                flag_new_client = False
                 if display_request == True:
                     print("DNS server listening for clients\n")
 
@@ -548,8 +553,14 @@ class DNSServer:
                     # 512 is byte limit for udp
                     data, client_conn_info = self.sock.recvfrom(512)
 
+                    if display_request == True:
+                        print("Locking Main DNS Thread")
+
+                    self.thread_lock.acquire()
+
                 except KeyboardInterrupt:
                     ACTIVE_THREAD_CONTINUE_BOOL = False
+                    self.thread_lock.release()
                     if display_request == True:
                         print("\nKeyboard Interrupt Occured")
                         self.close_server(True)
@@ -595,10 +606,10 @@ class DNSServer:
                 # if new client find closest replica and store the pair for future
                 # requests, instead of looking for closest replica every time
                 if client_ip not in CLIENTS_CONNECTED_RECORD.keys():
-                    # add client ip to do RTT checks
-                    CLIENTS_CHECK_RTT.append(client_ip)
+                    flag_new_client = True
+
                     if display_request == True:
-                        print(f"Adding {client_ip} to check for active measurement")
+                        print(f"Adding {client_ip} to check for active measurement\n")
                     try:
                         # tuple (distance, replica domain)
                         closest_replica: tuple[float, str] = self.get_closest_replica(
@@ -660,7 +671,16 @@ class DNSServer:
                     print(f"SENT RESPONSE:\n{dns_response}")
                     print(PLUS_DIVIDER)
 
+                if display_request == True:
+                    print("Releasing Thread Lock")
+                self.thread_lock.release()
+
+                if flag_new_client == True:
+                    # add client ip to do RTT checks
+                    CLIENTS_CHECK_RTT.append(client_ip)
+
         except KeyboardInterrupt:
+            self.thread_lock.release()
             ACTIVE_THREAD_CONTINUE_BOOL = False
             if display_request == True:
                 print("\nKeyboard Interrupt Occured")
