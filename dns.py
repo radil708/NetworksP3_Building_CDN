@@ -63,13 +63,14 @@ EARTH_RADIUS = 6373.0
 
 
 class ActMeasureThread(Thread):
-    '''
-    This class will run simultaneously with the dns thread. It will request all available the replica/http servers to run a ping
+    """
+    This class will run simultaneously with the dns thread. It will request all available the replica/http servers to
+    run a ping
     check to the client. It will receive all the RTT's from the http servers and determine the http server with the
     fastest RTT to a client. It will then modify the mapping of client ip : replica ip that is used by the dns
     server to keep track of where to send the clients to.
     It is called only once in the dns __init__/constructor method.
-    '''
+    """
 
 
     def __init__(self,hostServerPort, display=False):
@@ -113,6 +114,11 @@ class ActMeasureThread(Thread):
                 continue
 
     def close_all_tcp_sockets(self):
+        """
+        This function closes all client sockets running on this thread.
+        :return: None
+        """
+
         global VALID_REPLICA_DOMAINS
 
         if len(self.client_sockets) > 0:
@@ -212,8 +218,8 @@ class ActMeasureThread(Thread):
 
                         # if the item popped has 999 for a return time, then ping failed
                         # keep current client: replica mapping
-                        #TODO consider reappending to list? Maybe first pings failed but
-                        # may succeed in the future??
+                        #Considered reappending to list, as  maybe first pings failed but
+                        # may succeed in the future, but this may end up looping if the server stays down
                         if math.isclose(shortest_rtt_tuple[0], 999, abs_tol=2.0):
                             if self.display == True:
                                 print("Replica's unable to get ping response from client")
@@ -266,11 +272,11 @@ class DNSServer:
     This class represents the dns server. It's responsibilities:
     1.) Listen for clients send dns queries
     2.) Maintain a record of the http server that will respond the fastest to a client via the CLIENTS_CONNECTED_RECORD
-    3.) Send dns responses to the client
+    3.) Send dns responses to the client containing ip of replica server with fastest response
 
     How to use:
-    dns_instance = DNSServer(dns_port_value, customer_name_value, display_value, display_geo_load)
-    dns_instance.listen_for_clients()
+        dns_instance = DNSServer(dns_port_value, customer_name_value, display_value, display_geo_load)
+        dns_instance.listen_for_clients()
 
     '''
     def __init__(
@@ -438,6 +444,10 @@ class DNSServer:
         """
         This method determines the distance in KM between
         the client loc and replica loc
+
+        How to use:
+            dns_instance.get_distance_between_two_points( (client_lat, client_long) , (replica_lat, replica_long) )
+
         :param client_loc: Tuple(lat,long) - a tuple containing the lat and long of a client machine
         :param replica_loc: Tuple(lat,long) - a tuple containining the lat and long a replica machine
         :return: (float) the distance between the two locations in KM

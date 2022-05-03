@@ -3,7 +3,7 @@ README
 HIGH LEVEL APPROACH
 	1. Scripts
 		- deployCND:
-			> deploys dns and http to the nodes using scp and update permissions
+			> deploys dns and http to the nodes using the scp command and update permissions
 
 		- runCDN:
 			> runs the dnsserver with the port and dns name passed
@@ -11,25 +11,24 @@ HIGH LEVEL APPROACH
 
 		- stopCDN:
 			> stops dnsserver and all httpservers
-		How to use:
+
+		How to use scripts:
 			./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
 
 
 		***Custom flags have been added for testing purposes on our side (-d , -f , -s)
 			but they are optional and should NOT be used during speed testing of servers.
 
-		How to use:
-			./[deploy|run|stop]CDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile>
-
 		*** Please refrain from using custom arg -s as that will tell the servers to print
-			status statements from the servers to the terminal, potentially slowing down the program
+			status statements to the terminal, potentially slowing down the program
 			during speed testing. These statements are useful for keeping track
 			 of server events and debugging. If -s arg is not None then the server statements will print.
 
-		*** Custom arg -f used to apply the script to only one server, if not used
-			the default is to apply the script to both dnsserver and httpserver. It only
+		*** Custom arg -f used to apply the [deploy|run|stop]CDN script to only one server, if not used
+			the default is to apply the script to both dnsserver and httpservers. It only
 			accepts dns or http as valid arguments
-			Example:./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile> -f dns
+
+			Example: ./runCDN -p <port> -o <origin> -n <name> -u <username> -i <keyfile> -f dns
 				will ONLY run the dnsserver
 
 		 *** Custom arg -d can really only be used by us for our testing purposes. It is used
@@ -37,13 +36,44 @@ HIGH LEVEL APPROACH
 				when running the scripts.
 
 -----------------------------------------------------------------------------------------------
+	2. httpserver
+		- uses a socket to listen for queries from client and return a html
 
-
-	2. httpserver - uses a socket to listen for queries from client and return a html
 		- Queries the origin server if the query is not cached (requests.get())
+
 		- LFU cache is used to remove the least frequently requested query file from the cache
+
 		- Listens to tcp requests from tcp clients created in the dns
 			to ping the client and return a rtt to the dns server for active measurement.
+
+		- When the https server starts, it begins with an empty cache
+
+		- When the http server first receives a request, it will check if the cache contains the requested page.
+			> If the cache contains the page then it will send that page data back as a response.
+			> If the cache does not contain the the page, it will query the origin, send the origin
+				response back to the client, and save the page to the cache, making it accessible
+				for future client requests; allowing for a faster response time.
+
+		- Since the idea is that some pages are more frequently requested than others, the cache will eventually
+			fill up with the most frequently requested pages. The least frequently used ones will be swapped out for any
+			newly requested pages.
+			> The program caps cached data at 19 MB, at that point the LFU algorithm implemented will begin
+				swapping the least frequently used pages out.
+
+		- The cache stores compressed data, that will be decompressed when sending the response.
+
+		- http speed testing shows that storing compressed data as opposed to raw uncompressed page data
+			seemed to yield the fastest speed, AFTER the page has been cached (See small analysis
+			in "Overall http latency analysis.xlsx" file). If the page has not been cached yet, the
+			 process of querying the origin can slow down the response.
+
+			 > However, since the idea is that some pages will be queried more than others, the occurrence of
+			 	this slow down will be minimal and should only occur frequently near the beginning of the server startup.
+
+			 > In this way, each http server will dynamically build a library/cache of the most frequently requested
+			 	pages for itself. We opted for this strategy since preloading all the servers with the same cache
+			 	may lead to a slowdown during start up, and may not accurately represent the most frequently
+			 	queried pages in any particular region.
 
 		 How to run:
 			./httpserver -p <port> -o <origin>
@@ -51,7 +81,6 @@ HIGH LEVEL APPROACH
 		*** There is also an optional argument available. The display argument -s, if this arg is NOT None, then
 			http server status statements will be printed to the screen. Please do NOT use this argument when testing
 			for http server speed.
-
 
 ----------------------------------------------------------------------------------------------
 	3. dnsserver
@@ -61,14 +90,26 @@ HIGH LEVEL APPROACH
 
 		- When a client sends a request to this server, the closest (distance wise) replica
 			server will be sent as a reply and this pair is mapped/saved in a dictionary.
-			> The dns will then create tcp client sockets that communicate with the replica
-				servers
+			> Ideally this should be faster then sending to a random replica. However,
+				it is still possible that for whatever reason, a farther replica server
+				may respond faster. (I've only seen this happen once during testing)
+
+			> In order to determine if there is a replica server that can respond faster, the active measurement
+				protocol will begin after a request from any new client.
+
+			>The dns will then create tcp client sockets that communicate with the replica
+				servers on a thread separate to the main dnsserver, to hopefully reduce any slowdown.
+
 			> These client sockets will request the RTT information between the replica and client
+
 			> If the replica with the fastest RTT to client is NOT the same as the currently mapped
-				one, then the mapping is updated and so future dns queries by that client
-				are directed to the replica with the fastest RTT.
-			> This RTT query is performed on a different thread then the main dnsserver
-			> This update only occurs once per new client and so is self-rate-limiting
+				one(i.e. the one assigned by geolocation), then the mapping is updated and so future
+				dns queries by that client are directed to the replica with the fastest RTT.
+
+			> This update only occurs once per new client and so is self-rate-limiting.
+				We acknowledge that there is a weakness in this system. It is possible
+					that at some point after the update has occured, it is possible
+					that
 
 		- The dns is setup to accept queries for the domain (-n arg) passed in by the user
 
@@ -102,19 +143,19 @@ HIGH LEVEL APPROACH
 		File Dependencies for dnsserver:
 			1.) geo_db.py : class used for geolocation
 			2.) dns.py : class containing dnsserver code
-			3.) dnsDriver.py : converted into dnsserver which is used to run the code
+			3.) dnsDriver.py : converted into dnsserver executable which is used to run the code
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CONTRIBUTIONS
 
-	Utkarshna - wrote deploy/run/stop scripts,built httpserver, http testing
+	Utkarshna - wrote deploy/run/stop scripts,built httpserver, http cache and dns communication testing,
 				implemented active measurement code for http server side,
 				implemented Least Frequently Used (LFU) strategy
 --------------------------------------------------------------------------------------------------------------------------------
 	Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
 			implemented geo cache strategy, tested/verified geo functions,
-			automated_testing.py (http server speed testing)
-			implemented argparser and custom flags for deploy/run/stop scripts
+			wrote automated_testing.py (http server speed testing) and tested http speed,
+			dns testing, implemented argparser and custom flags for deploy/run/stop scripts
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -125,3 +166,8 @@ CHALLENGES:
  	- Implementing LFU
  	- Testing servers
  	- Getting the dns to communicate with the http servers and vice versa
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Supplemental Info:
+	The files for automated_testing.py and fill_http_beacon_rq_page.py require the pandas module to be installed, though the files
+	themselves will not be deployed or run by the scripts. They are used to help us run our tests.

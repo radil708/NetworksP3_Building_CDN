@@ -2,11 +2,10 @@
 import argparse
 from dns import *
 
-# TODO REMOVE THESE DEFAULTS LATER
+
 DEFAULT_PORT = 40015
 DEFAULT_NAME = "cs5700cdn.example.com"
 
-#
 def main():
 
     parser = argparse.ArgumentParser(description="Parser for dnsserver args")
@@ -46,7 +45,6 @@ def main():
         display_prints = True
 
     if args.default != None:
-        # running in default mode will show print statements
         args.port = DEFAULT_PORT
         args.name = DEFAULT_NAME
 

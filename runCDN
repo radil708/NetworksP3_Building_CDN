@@ -245,7 +245,7 @@ def main():
         f"USER ENTERED VALUES FOR RUN SCRIPT:"
         f"\nPort: {args.port}"
         f"\nOrigin: {args.origin}"
-        f"\nDomain: {args.domain_name}"
+        f"\nCustomer Domain Name: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"
         f"\nUsername: {args.username}"
         f"\nShould Server(s) Print Statements to Terminal?: {args.display}"

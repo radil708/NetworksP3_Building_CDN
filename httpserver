@@ -332,7 +332,7 @@ class Cache:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Parser for dnsserver args")
+    parser = argparse.ArgumentParser(description="Parser for httpserver args")
     parser.add_argument(
         "-p",
         "--port",
