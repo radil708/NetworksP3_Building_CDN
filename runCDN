@@ -60,17 +60,19 @@ def run_dns(port, username, keyfile, domain_name, dns_display):
                 + " -s 1" # display var
                 + " &"
         )
-
+    print(f"\nRUNNING COMMAND:\n{run_command}")
     value = os.system(run_command)
+    print("DNS RUN COMMAND RETURNS = ", value)
 
     if value == 0:
         print("DNS RUN COMMAND SUCCESSFULLY SENT\n")
-        print("Please wait until DNS READY MESSAGE DISPLAYED")
+        print("\nPlease wait until DNS READY MESSAGE DISPLAYED...")
+        #delay included to allow for geoCAche to build, it should only take 10 sec but
+        # am doubling to ensure it's ready
         time.sleep(20)
         print("DNS should be ready")
         print("++++++++++++++++++++++++++++++++++++\n")
     else:
-        print(f"DNS RUN RETURNED {value}")
         print("DNS RUN FAILED")
         print("CONTINUING PROGRAM")
         print("++++++++++++++++++++++++++++++++++++\n")
@@ -251,7 +253,6 @@ def main():
         f"\nCustomer Domain Name: {args.domain_name}"
         f"\nKeyfile: {args.keyfile}"
         f"\nUsername: {args.username}"
-        f"\nShould Server(s) Print Statements to Terminal?: {args.display}"
         f"\nExecute Run Script for DNS server?: {runDNS}"
         f"\nExecute Run Script for HTTP server?: {runHTTP}"
     )

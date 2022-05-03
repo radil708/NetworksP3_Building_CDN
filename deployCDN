@@ -39,7 +39,14 @@ def run_copy_to_dns(file_name, keyfile_path, username_in, display=False):
     if display == True:
         print("Running Command: " + copy_cmd)
 
-    os.system(copy_cmd)
+    value = os.system(copy_cmd)
+    print("DNS COMMAND Returns = ", value)
+
+    if value != 0:
+        print("TOO MANY LOGINS TO DNS SERVER, DNS DEPLOYMENT FAILED")
+
+    print("Notice: This statement will always display:\n"
+          "\tWARNING: PLEASE CHECK DNS SERVER, files may not be copied/deployed if someone is already logged in to the server\nProceeding...")
 
     if display == True:
         print("--------------------------------------------------\n")

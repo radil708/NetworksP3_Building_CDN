@@ -1,5 +1,9 @@
 README
 
+*** IMPORTANT NOTICE TO GRADER
+	- Sometimes the deploy seems to fail if someone is logged in to the server/
+
+
 HIGH LEVEL APPROACH
 	1. Scripts
 		- deployCND:
