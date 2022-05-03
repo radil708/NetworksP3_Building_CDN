@@ -64,7 +64,7 @@ def run_dns(port, username, keyfile, domain_name, dns_display):
 
     if value == 0:
         print("DNS RUN COMMAND SUCCESSFULLY SENT\n")
-        print("Please wait a few seconds before sending requests")
+        print("Please wait until DNS READY MESSAGE DISPLAYED")
         print("++++++++++++++++++++++++++++++++++++\n")
     else:
         print(f"DNS RUN RETURNED {value}")

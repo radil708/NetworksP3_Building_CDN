@@ -396,6 +396,8 @@ class DNSServer:
         ACTIVE_MEASUREMENT_THREAD.daemon = True # thread will die when main thread exits
         ACTIVE_MEASUREMENT_THREAD.start()
 
+        print("DNS READY!")
+
     def close_server(self, display_close_msg: bool = False):
         """
         Closes the dns socket, any tcp sockets, and then exits the program
