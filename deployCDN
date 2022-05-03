@@ -34,7 +34,7 @@ ORIGIN_SERVER = "cs5700cdnorigin.ccs.neu.edu"
 
 
 def run_copy_to_dns(file_name, keyfile_path, username_in, display=False):
-    copy_cmd = f"scp -i {keyfile_path} {file_name} {username_in}@{DNS_NODE}:."
+    copy_cmd = ("scp -i " + keyfile_path + " " + file_name + " " + username_in + "@" + DNS_NODE + ":.")
 
     if display == True:
         print("Running Command: " + copy_cmd)
@@ -227,7 +227,7 @@ def main():
         elif args.keyfile is None:
             print("Missing keyfile -i")
         elif args.username is None:
-            print("Missing username -u -i")
+            print("Missing username -u")
         else:
             required_filled = True
 
