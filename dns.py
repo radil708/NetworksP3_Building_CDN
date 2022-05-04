@@ -569,6 +569,12 @@ class DNSServer:
 
         try:
             while True:
+
+                if self.thread_lock.locked() == True:
+                    if display_request == True:
+                        print("Main DNS thread was locked when listening for clients, releasing lock")
+                    self.thread_lock.release()
+
                 flag_new_client = False
                 if display_request == True:
                     print("DNS server listening for clients\n")
@@ -576,6 +582,11 @@ class DNSServer:
                 try:
                     # 512 is byte limit for udp
                     data, client_conn_info = self.sock.recvfrom(512)
+
+                    if self.thread_lock.locked() == True:
+                        if display_request == True:
+                            print("Main DNS thread was locked when listening for clients, releasing lock, line 587")
+                        self.thread_lock.release()
 
                     if display_request == True:
                         print("LOCKING Main DNS Thread\n")
@@ -594,6 +605,8 @@ class DNSServer:
 
                 except Exception as e:
                     print("line 597: ", e)
+                    if self.thread_lock.locked() == True:
+                        self.thread_lock.release()
                     continue
 
                 # ip is first element, port is second
