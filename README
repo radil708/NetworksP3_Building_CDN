@@ -42,7 +42,7 @@ HIGH LEVEL APPROACH
 				to set default values to the other arguments. Please do NOT use this argument
 				when running the scripts.
 
-----------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 	2. httpserver
 		- uses a socket to listen for queries from client and return a html
 
@@ -89,7 +89,7 @@ HIGH LEVEL APPROACH
 			http server status statements will be printed to the screen. Please do NOT use this argument when testing
 			for http server speed.
 
-----------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 	3. dnsserver
 		- Utilizes active measurement in addition to geolocation
 
@@ -152,7 +152,7 @@ HIGH LEVEL APPROACH
 			2.) dns.py : class containing dnsserver code
 			3.) dnsDriver.py : converted into dnsserver executable which is used to run the code
 			
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CONTRIBUTIONS
 
@@ -160,13 +160,13 @@ CONTRIBUTIONS
 				implemented active measurement code for http server side,
 				implemented Least Frequently Used (LFU) strategy
 				
-----------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 	Ramzi - built dns server, implemented multithreading for active measurements on dns server side,
 			implemented geo cache strategy, tested/verified geo functions,
 			wrote automated_testing.py (http server speed testing) and tested http speed,
 			dns testing, implemented argparser and custom flags for deploy/run/stop scripts
 
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 CHALLENGES:
  	- Implementing active measurements
@@ -176,7 +176,7 @@ CHALLENGES:
  	- Testing servers
  	- Getting the dns to communicate with the http servers and vice versa
 
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Supplemental Info:
 	The files for automated_testing.py and fill_http_beacon_rq_page.py require the pandas module to be installed, though the files
 	themselves will not be deployed or run by the scripts. They are used to help us run our tests.
