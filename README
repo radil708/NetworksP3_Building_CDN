@@ -1,7 +1,10 @@
 README
 
 *** IMPORTANT NOTICE TO GRADER
-	- Sometimes the deploy seems to fail if someone is logged in to the server/
+	- Sometimes the deploy seems to fail if someone is logged in to the server already, TA confirmed this was
+		a server side issue and not a deployment problem
+	- All files are kept in the root directory on purpose because deployment will only copy the correct
+		files over to the respective servers
 
 
 HIGH LEVEL APPROACH

@@ -1,4 +1,4 @@
-# build weighted from pageview.csv
+
 import re
 import random
 import time
@@ -26,6 +26,10 @@ PLUS_DIVIDER = "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 MINUS_DIVIDER = "----------------------------------------------\n"
 EQUALS_DIVIDER = "==============================================\n"
 
+"""
+The purpose of this file is to build .csv files that we can use to analyze the speed of response from the HTTP 
+servers.
+"""
 
 def build_associative_arr(file_name: str = "pageviews.csv", display_prints=False):
     """
@@ -76,12 +80,6 @@ def build_associative_arr(file_name: str = "pageviews.csv", display_prints=False
 
     return list_content, list_weight
 
-
-def get_list_pages_following_distribution_cumulative_weight(list_content_in, list_weight_in, amount):
-    return random.choices(list_content_in, cum_weights=list_weight_in, k=amount)
-
-
-# use abs
 def get_list_pages_following_distribution_abs_weight(list_content_in: list, list_weight_in: list, amount: int) -> list:
     """
     Generates a list of size amount. Each element is the name of a page from list_content_in.
@@ -96,8 +94,8 @@ def get_list_pages_following_distribution_abs_weight(list_content_in: list, list
 
     :param list_content_in: (list) Contains a list of page names
     :param list_weight_in: (list) an associative array for list_content_in which contains the weights of each page.
-    :param amount:
-    :return:
+    :param amount: (int) the amount of elements in the generated list
+    :return: (list) Contains elements selected by weighted distribution
     """
     return random.choices(list_content_in, weights=list_weight_in, k=amount)
 
@@ -189,8 +187,6 @@ def make_df_for_analysis(df_with_col: pd.DataFrame, list_pages: list, http_targe
             end_time = 999999999
             status_code_rcvd = 404
 
-        # time.sleep(0.2)
-
         duration_request = round(end_time - start_time, 5)
         if duration_request >= 999:
             duration_request = 999
@@ -222,7 +218,8 @@ def get_stats_for_one_page(df_in: pd.DataFrame, page_name: str) -> tuple:
         example_page = Main_Page
         page_name, max_val, min_val, avg_overall, avg_post_cache = get_stats_for_one_page(df_out, example_page)
 
-    :param df_in: (pd.DataFrame) a dataframe containing the follolwing columns
+    :param df_in: (pd.DataFrame) a dataframe containing the following columns in this order
+                ['content_requested', 'http_time_sec', 'status_code']
     :param page_name: (str) a string representing a page name
     :return: (tuple) a quintuple of floats representing max response time, min response time,
                     average response time, average response time post cache.
@@ -246,9 +243,9 @@ def build_analysis_df(df_raw_res: pd.DataFrame, df_analysis: pd.DataFrame, page_
     This will create a csv file containing max response time, min response time,
                     average response time, average response time post cache per page
     :param df_raw_res: (pd.Dataframe) the output of make_df_for_analysis
-    :param df_analysis:
-    :param page_name:
-    :return:
+    :param df_analysis: a dataframe with the following columns
+    :param page_name: The name of the page requested that we want to analyse the http response speed for
+    :return: (pandas.DataFrame) A dataframe containing statistically calculated response speed information
     """
     results_analysis_one_page = get_stats_for_one_page(df_raw_res, page_name)
     d_analysis_temp = make_matching_list(list(df_analysis.columns), list(results_analysis_one_page))
@@ -280,7 +277,8 @@ def main():
 
     df_results = make_df_for_analysis(df_results, list_page_requests_distributed, target_ip, target_port)
 
-    # running at least twice so every request is at least hit twice, can see difference between caching and not caching
+    # running at least twice so every request is at least hit twice, so that we can see difference between
+    # caching and not caching.
     df_results = make_df_for_analysis(df_results, list_page_requests_distributed, target_ip, target_port)
     df_results = make_df_for_analysis(df_results, list_page_requests_distributed, target_ip, target_port)
 
