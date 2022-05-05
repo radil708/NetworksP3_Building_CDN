@@ -130,7 +130,7 @@ class ActMeasureThread(Thread):
                     if self.display == True:
                         print(f"Client socket to {VALID_REPLICA_DOMAINS[i]} has been closed")
                 except Exception as e:
-                    print("Line 107: ", e)
+                    print("Line 133: ", e)
                     if self.display == True:
                         print("Unable to close socket")
             if self.display == True:
@@ -282,7 +282,7 @@ class ActMeasureThread(Thread):
 
                 except Exception as e:
                     if self.display == True:
-                        print("Line 187: ", e)
+                        print("Line 285: ", e)
                         print("No responses from http pings")
             else:
                 time.sleep(0.3)
@@ -585,7 +585,7 @@ class DNSServer:
 
                     if self.thread_lock.locked() == True:
                         if display_request == True:
-                            print("Main DNS thread was locked when listening for clients, releasing lock, line 587")
+                            print("Main DNS thread was locked when listening for clients, releasing lock, line 588")
                         self.thread_lock.release()
 
                     if display_request == True:
@@ -604,7 +604,7 @@ class DNSServer:
                         self.close_server()
 
                 except Exception as e:
-                    print("line 597: ", e)
+                    print("line 607: ", e)
                     if self.thread_lock.locked() == True:
                         self.thread_lock.release()
                     continue
