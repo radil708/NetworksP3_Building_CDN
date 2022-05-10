@@ -7,7 +7,7 @@ README
 
 HIGH LEVEL APPROACH
 	1. Scripts
-		- deployCND:
+		- deployCDN:
 			> deploys dns and http to the nodes using the scp command and update permissions
 
 		- runCDN:
