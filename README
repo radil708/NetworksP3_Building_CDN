@@ -116,7 +116,8 @@ HIGH LEVEL APPROACH
 			> This update only occurs once per new client and so is self-rate-limiting.
 				We acknowledge that there is a weakness in this system. It is possible
 					that at some point after the update has occured, it is possible
-					that
+					that the currently selected server may be slower than a different
+					server for a returning client.
 
 		- The dns is setup to accept queries for the domain (-n arg) passed in by the user
 
