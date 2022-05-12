@@ -1,6 +1,6 @@
 README
 
-*** IMPORTANT NOTICE TO GRADER
+*** IMPORTANT NOTICE
 	- All files are kept in the root directory on purpose because deployment will only copy the correct
 		files over to the respective servers
 
